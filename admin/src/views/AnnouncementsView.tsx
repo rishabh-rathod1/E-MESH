@@ -83,9 +83,9 @@ export const AnnouncementsView: React.FC = () => {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight">EMERGENCY MESH BROADCASTS</h2>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            DISPATCH PUBLIC ADVISORIES & SHELTER NOTICES OVER WIRELESS MESH ({announcements.length} TOTAL)
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Broadcasts</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Public advisories and shelter notices via mesh network ({announcements.length} total)
           </p>
         </div>
 

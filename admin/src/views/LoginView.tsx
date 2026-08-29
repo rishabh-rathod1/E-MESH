@@ -28,27 +28,64 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center" style={{ minHeight: '100vh', background: 'radial-gradient(circle at 50% 30%, #151e30 0%, #080b11 70%)', padding: '1rem' }}>
-      <div style={{ width: '100%', maxWidth: '440px', background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-lg)', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)' }}>
+    <div
+      className="flex items-center justify-center"
+      style={{ minHeight: '100vh', background: '#F2F1EC', padding: '1rem' }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          background: '#FFFFFF',
+          border: '1px solid #D5D9D4',
+          borderRadius: '10px',
+          padding: '2rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+        }}
+      >
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="p-3 mb-3" style={{ background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '16px' }}>
-            <Radio size={32} className="text-blue" />
+          <div
+            style={{
+              padding: '0.625rem',
+              marginBottom: '0.75rem',
+              background: 'rgba(113, 137, 166, 0.1)',
+              border: '1px solid rgba(113, 137, 166, 0.2)',
+              borderRadius: '10px',
+            }}
+          >
+            <Radio size={28} style={{ color: '#7189A6' }} />
           </div>
-          <h1 className="text-2xl font-extrabold" style={{ letterSpacing: '0.5px' }}>E-MESH COMMAND CENTER</h1>
-          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Self-Healing Emergency Response Network</p>
+          <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#343936', letterSpacing: '0.3px' }}>
+            E-MESH NOC Admin
+          </h1>
+          <p style={{ fontSize: '0.75rem', color: '#737A75', marginTop: '0.25rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Emergency Mesh Network Operations
+          </p>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 mb-4 text-xs font-semibold text-red" style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-sm)' }}>
-            <AlertCircle size={16} className="flex-shrink-0" />
+          <div
+            className="flex items-center gap-2"
+            style={{
+              padding: '0.625rem 0.75rem',
+              marginBottom: '1rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#A06060',
+              background: 'rgba(201, 130, 130, 0.08)',
+              border: '1px solid rgba(201, 130, 130, 0.2)',
+              borderRadius: '6px',
+            }}
+          >
+            <AlertCircle size={15} className="flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label flex items-center gap-1.5">
-              <User size={14} className="text-blue" /> Operator Username
+            <label className="form-label flex items-center gap-1\.5">
+              <User size={13} style={{ color: '#7189A6' }} /> Username
             </label>
             <input
               type="text"
@@ -61,8 +98,8 @@ export const LoginView: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label flex items-center gap-1.5">
-              <Lock size={14} className="text-blue" /> Security Key / Password
+            <label className="form-label flex items-center gap-1\.5">
+              <Lock size={13} style={{ color: '#7189A6' }} /> Password
             </label>
             <input
               type="password"
@@ -74,31 +111,36 @@ export const LoginView: React.FC = () => {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2" style={{ padding: '0.75rem' }}>
-            {loading ? 'Authenticating Operator...' : 'Authenticate & Access NOC'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary w-full"
+            style={{ padding: '0.625rem', marginTop: '0.25rem' }}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-          <div className="text-xs font-bold text-dim uppercase tracking-wider mb-2 text-center">
-            Quick Operator Profiles
+        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #D5D9D4' }}>
+          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#9AA09B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', textAlign: 'center' }}>
+            Quick Access Profiles
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               className="btn btn-sm"
               onClick={() => setCredentials('admin', 'Admin@Mesh2025')}
-              style={{ fontSize: '0.75rem' }}
+              style={{ fontSize: '0.6875rem' }}
             >
-              <Shield size={12} className="text-amber" /> System Admin
+              <Shield size={12} style={{ color: '#D8B878' }} /> System Admin
             </button>
             <button
               type="button"
               className="btn btn-sm"
               onClick={() => setCredentials('manager', 'Manager@Mesh2025')}
-              style={{ fontSize: '0.75rem' }}
+              style={{ fontSize: '0.6875rem' }}
             >
-              <User size={12} className="text-blue" /> Incident Manager
+              <User size={12} style={{ color: '#7189A6' }} /> Manager
             </button>
           </div>
         </div>

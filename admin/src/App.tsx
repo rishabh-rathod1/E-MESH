@@ -10,15 +10,15 @@ const MainContent: React.FC = () => {
     return (
       <div
         className="flex items-center justify-center"
-        style={{ minHeight: '100vh', background: 'var(--bg-app)' }}
+        style={{ minHeight: '100vh', background: '#F2F1EC' }}
       >
         <div className="flex flex-col items-center gap-3">
           <div
             className="pulse-dot online"
-            style={{ width: '16px', height: '16px' }}
+            style={{ width: '12px', height: '12px' }}
           />
-          <div className="text-xs font-mono text-muted tracking-widest uppercase">
-            Initializing E-Mesh NOC Console...
+          <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: '#737A75', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Initializing E-Mesh NOC...
           </div>
         </div>
       </div>

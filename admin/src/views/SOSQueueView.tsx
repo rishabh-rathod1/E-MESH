@@ -68,10 +68,10 @@ export const SOSQueueView: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <span className="pulse-dot offline" />
-            <h2 className="text-2xl font-extrabold tracking-tight text-red">EMERGENCY SOS DISPATCH QUEUE</h2>
+            <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--accent-red)' }}>Emergency SOS Queue</h2>
           </div>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            REAL-TIME DISTRESS BROADCAST MONITOR • ZERO-INTERNET MESH PACKETS
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Real-time distress broadcast monitor — mesh network packets
           </p>
         </div>
 
@@ -79,12 +79,12 @@ export const SOSQueueView: React.FC = () => {
           <button
             onClick={() => setAudioAlert(!audioAlert)}
             className={`btn btn-sm ${audioAlert ? 'btn-danger' : ''}`}
-            title="Toggle Operator Audio Siren on new SOS"
+            title="Toggle audio alerts on new SOS"
           >
-            {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />} Audio Alerts {audioAlert ? 'ON' : 'OFF'}
+            {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />} Audio {audioAlert ? 'ON' : 'OFF'}
           </button>
           <button onClick={loadData} disabled={loading} className="btn btn-sm">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Queue
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>
       </div>
@@ -94,41 +94,41 @@ export const SOSQueueView: React.FC = () => {
         <div className="metric-card border-red">
           <div className="flex justify-between items-center">
             <div>
-              <div className="text-xs font-bold text-muted uppercase">Active Distress Calls</div>
-              <div className="text-3xl font-extrabold mt-1 text-red font-mono">{activeCount}</div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Distress Calls</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{activeCount}</div>
             </div>
-            <AlertOctagon size={28} className="text-red" />
+            <AlertOctagon size={24} style={{ color: 'var(--accent-red)' }} />
           </div>
         </div>
 
         <div className="metric-card border-amber">
           <div className="flex justify-between items-center">
             <div>
-              <div className="text-xs font-bold text-muted uppercase">People at Risk</div>
-              <div className="text-3xl font-extrabold mt-1 text-amber font-mono">{totalPeople}</div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>People at Risk</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>{totalPeople}</div>
             </div>
-            <Users size={28} className="text-amber" />
+            <Users size={24} style={{ color: 'var(--accent-amber)' }} />
           </div>
         </div>
 
         <div className="metric-card border-emerald">
           <div className="flex justify-between items-center">
             <div>
-              <div className="text-xs font-bold text-muted uppercase">Mesh Gateway Mode</div>
-              <div className="text-xl font-bold mt-1 text-emerald">ESP-NOW / LAN</div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Mesh Gateway Mode</div>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, marginTop: '0.25rem', color: 'var(--accent-emerald)' }}>ESP-NOW / LAN</div>
             </div>
-            <Radio size={28} className="text-emerald" />
+            <Radio size={24} style={{ color: 'var(--accent-emerald)' }} />
           </div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         {[
-          { id: 'ACTIVE', label: 'Active Distress (Immediate Action)' },
-          { id: 'ACKNOWLEDGED', label: 'Acknowledged / Dispatched' },
-          { id: 'RESOLVED', label: 'Resolved SOS' },
-          { id: '', label: 'All SOS History' },
+          { id: 'ACTIVE', label: 'Active Distress' },
+          { id: 'ACKNOWLEDGED', label: 'Acknowledged' },
+          { id: 'RESOLVED', label: 'Resolved' },
+          { id: '', label: 'All History' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -143,10 +143,10 @@ export const SOSQueueView: React.FC = () => {
       {/* SOS List */}
       <div className="flex flex-col gap-4">
         {sosList.length === 0 ? (
-          <div className="card text-center py-12 text-muted">
-            <CheckCircle size={36} className="text-emerald mx-auto mb-2" />
-            <div className="font-bold text-base text-main">No Emergency SOS Calls in Queue</div>
-            <div className="text-xs mt-1">All civilian distress requests have been acknowledged or resolved.</div>
+          <div className="card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+            <CheckCircle size={32} style={{ color: 'var(--accent-emerald)', margin: '0 auto 0.5rem' }} />
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-main)' }}>No SOS Calls in Queue</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>All distress requests have been acknowledged or resolved.</div>
           </div>
         ) : (
           sosList.map((sos) => {
@@ -163,52 +163,52 @@ export const SOSQueueView: React.FC = () => {
                 key={sos.id}
                 className="card"
                 style={{
-                  background: sos.status === 'ACTIVE' ? 'linear-gradient(90deg, #1f1416 0%, #161e2e 100%)' : 'var(--bg-card)',
-                  borderColor: sos.status === 'ACTIVE' ? 'rgba(239, 68, 68, 0.4)' : 'var(--border-subtle)',
+                  borderColor: sos.status === 'ACTIVE' ? 'rgba(201, 130, 130, 0.35)' : undefined,
+                  background: sos.status === 'ACTIVE' ? 'rgba(201, 130, 130, 0.03)' : undefined,
                 }}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <div
-                      className="p-3"
                       style={{
-                        background: sos.status === 'ACTIVE' ? 'rgba(239, 68, 68, 0.2)' : 'var(--bg-surface-elevated)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        padding: '0.625rem',
+                        background: sos.status === 'ACTIVE' ? 'rgba(201, 130, 130, 0.1)' : 'var(--bg-surface-elevated)',
+                        borderRadius: '10px',
+                        border: sos.status === 'ACTIVE' ? '1px solid rgba(201, 130, 130, 0.2)' : '1px solid var(--border-subtle)',
                       }}
                     >
-                      <AlertOctagon size={24} className={sos.status === 'ACTIVE' ? 'text-red' : 'text-muted'} />
+                      <AlertOctagon size={22} style={{ color: sos.status === 'ACTIVE' ? 'var(--accent-red)' : 'var(--text-muted)' }} />
                     </div>
 
                     <div>
                       <div className="flex items-center gap-2">
                         <span className={`badge ${badgeColor}`}>{sos.status}</span>
-                        <span className="text-xs font-mono text-dim">ID: {sos.id}</span>
+                        <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>ID: {sos.id}</span>
                         {sos.incident_id && (
-                          <span className="text-xs font-mono text-blue flex items-center gap-1">
-                            • Linked to Incident: {sos.incident_id}
+                          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-blue)' }} className="flex items-center gap-1">
+                            • Linked: {sos.incident_id}
                           </span>
                         )}
                       </div>
 
-                      <div className="text-lg font-bold text-main mt-1 flex items-center gap-2">
+                      <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }} className="flex items-center gap-2">
                         <span>{sos.people_count} Person{sos.people_count > 1 ? 's' : ''} in Immediate Danger</span>
                       </div>
 
                       {sos.notes ? (
-                        <p className="text-sm text-main mt-1 p-2" style={{ background: 'rgba(0, 0, 0, 0.2)', borderRadius: 'var(--radius-sm)' }}>
+                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-main)', marginTop: '0.375rem', padding: '0.5rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                           <strong>Notes:</strong> {sos.notes}
                         </p>
                       ) : (
-                        <p className="text-xs text-dim mt-1 italic">No extra notes provided by reporter.</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem', fontStyle: 'italic' }}>No extra notes provided by reporter.</p>
                       )}
 
-                      <div className="flex items-center gap-4 text-xs font-mono text-muted mt-2">
+                      <div className="flex items-center gap-4" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                         <span className="flex items-center gap-1">
                           <Clock size={12} /> {new Date(sos.created_at).toLocaleString()}
                         </span>
                         {sos.node_id && (
-                          <span className="flex items-center gap-1 text-cyan">
+                          <span className="flex items-center gap-1" style={{ color: 'var(--accent-primary)' }}>
                             <Radio size={12} /> Via Node: {sos.node_id}
                           </span>
                         )}
@@ -224,7 +224,7 @@ export const SOSQueueView: React.FC = () => {
                         onClick={() => handleUpdateStatus(sos.id, 'ACKNOWLEDGED')}
                         className="btn btn-sm btn-primary"
                       >
-                        <Clock size={14} /> Acknowledge & Deploy
+                        <Clock size={14} /> Acknowledge
                       </button>
                     )}
 
@@ -232,10 +232,9 @@ export const SOSQueueView: React.FC = () => {
                       <button
                         disabled={isActing}
                         onClick={() => handleUpdateStatus(sos.id, 'RESOLVED')}
-                        className="btn btn-sm"
-                        style={{ background: 'var(--accent-emerald)', borderColor: 'var(--accent-emerald)', color: '#fff' }}
+                        className="btn btn-sm btn-success"
                       >
-                        <CheckCircle size={14} /> Mark Resolved
+                        <CheckCircle size={14} /> Resolve
                       </button>
                     )}
 

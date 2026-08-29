@@ -88,9 +88,9 @@ export const RespondersView: React.FC = () => {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight">FIELD RESPONDER ROSTER & DEPLOYMENT</h2>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            DISPATCH TEAMS • EMERGENCY ROLES • OPERATIONAL READINESS
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Responder Roster</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Dispatch teams, emergency roles, and operational readiness
           </p>
         </div>
 
@@ -126,8 +126,8 @@ export const RespondersView: React.FC = () => {
                 <div>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2" style={{ background: 'rgba(59, 130, 246, 0.15)', borderRadius: '8px' }}>
-                        <Shield size={20} className="text-blue" />
+                      <div style={{ padding: '0.5rem', background: 'rgba(113, 137, 166, 0.1)', borderRadius: '8px' }}>
+                        <Shield size={18} style={{ color: 'var(--accent-blue)' }} />
                       </div>
                       <div>
                         <div className="font-bold text-base">{resp.user?.full_name || resp.user?.username || 'Unknown'}</div>
@@ -139,11 +139,11 @@ export const RespondersView: React.FC = () => {
 
                   <div className="mt-4 space-y-2 text-xs">
                     <div className="flex items-center gap-1.5 text-main">
-                      <Users size={14} className="text-cyan" />
+                      <Users size={14} style={{ color: 'var(--accent-primary)' }} />
                       <span><strong>Team:</strong> {resp.team || 'Unassigned'}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-main">
-                      <MapPin size={14} className="text-amber" />
+                      <MapPin size={14} style={{ color: 'var(--accent-amber)' }} />
                       <span><strong>Zone:</strong> {resp.zone || 'General Mesh Area'}</span>
                     </div>
                   </div>
@@ -166,7 +166,7 @@ export const RespondersView: React.FC = () => {
                     <option value="OFFLINE">OFFLINE</option>
                   </select>
 
-                  <button onClick={() => handleDeleteResponder(resp.id)} className="btn-icon text-red" title="Remove Responder">
+                  <button onClick={() => handleDeleteResponder(resp.id)} className="btn-icon" style={{ color: 'var(--accent-red)' }} title="Remove Responder">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -182,7 +182,7 @@ export const RespondersView: React.FC = () => {
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-3 mb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
               <h3 className="text-base font-bold flex items-center gap-2">
-                <Shield size={18} className="text-blue" /> Enlist User as Field Responder
+                <Shield size={18} style={{ color: 'var(--accent-primary)' }} /> Enlist Responder
               </h3>
               <button onClick={() => setShowAddModal(false)} className="btn-icon"><X size={18} /></button>
             </div>

@@ -110,9 +110,9 @@ export const PeopleView: React.FC = () => {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight">PEOPLE & OPERATOR DIRECTORY</h2>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            USER ACCESS CONTROL • ROLE PRIVILEGES • IDENTITY MANAGEMENT ({total} REGISTERED)
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>People Directory</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            User access control, roles, and identity management ({total} registered)
           </p>
         </div>
 
@@ -127,7 +127,7 @@ export const PeopleView: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="card mb-6" style={{ background: 'var(--bg-surface)' }}>
+      <div className="card mb-6">
         <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-1 items-center gap-2" style={{ minWidth: '240px' }}>
             <div className="relative w-full">

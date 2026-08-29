@@ -21,6 +21,7 @@ export const AppLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [activeSosCount, setActiveSosCount] = useState(0);
   const [activeIncidentCount, setActiveIncidentCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fetchBadgeCounts = async () => {
     try {
@@ -76,14 +77,19 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="app-container">
+      {mobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)} />
+      )}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeSosCount={activeSosCount}
         activeIncidentCount={activeIncidentCount}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
       <div className="app-main">
-        <Header />
+        <Header onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
         <main className="app-content">{renderContent()}</main>
       </div>
     </div>

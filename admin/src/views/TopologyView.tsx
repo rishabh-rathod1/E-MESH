@@ -99,18 +99,18 @@ export const TopologyView: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <Network size={24} className="text-cyan" />
-            <h2 className="text-2xl font-extrabold tracking-tight">ESP-WIFI-MESH TOPOLOGY & TREE HIERARCHY</h2>
+            <Network size={24} style={{ color: 'var(--accent-primary)' }} />
+            <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Mesh Topology Map</h2>
           </div>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            APPLICATION-LEVEL SIMULATION • SELF-HEALING TREE MATRIX • ROOT GATEWAY DISPATCH
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Application-level simulation, self-healing tree matrix, and root gateway dispatch
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-strong text-xs font-mono">
-            <Layers size={14} className="text-cyan" />
-            <span>Max Tree Depth: <strong className="text-white">{topology.max_depth} Layers</strong></span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border-strong text-xs font-mono" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+            <Layers size={14} style={{ color: 'var(--accent-primary)' }} />
+            <span style={{ color: 'var(--text-muted)' }}>Max Tree Depth: <strong style={{ color: 'var(--text-main)' }}>{topology.max_depth} Layers</strong></span>
           </div>
 
           <button onClick={loadData} disabled={loading} className="btn btn-sm">
@@ -120,41 +120,42 @@ export const TopologyView: React.FC = () => {
       </div>
 
       {/* Illustrative Route Path Tracer */}
-      <div className="card mb-6 p-4" style={{ background: 'linear-gradient(135deg, rgba(14,23,38,0.95), rgba(6,78,59,0.2))' }}>
+      <div className="card mb-6 p-4" style={{ background: 'rgba(136, 179, 148, 0.05)', border: '1px solid rgba(136, 179, 148, 0.3)' }}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+            <div style={{ padding: '0.5rem', borderRadius: '8px', background: 'rgba(136, 179, 148, 0.1)', color: 'var(--accent-emerald)' }}>
               <Route size={18} />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted font-mono">
-                Illustrative Multi-Hop Route Path (Application-Level Metadata)
+              <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                Illustrative Multi-Hop Route Path
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="badge badge-subtle">Client (Civilian App)</span>
-                <ChevronRight size={14} className="text-muted" />
+                <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>Client App</span>
+                <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                 {activeRoutePath.length > 0 ? (
                   activeRoutePath.map((nid, i) => (
                     <React.Fragment key={nid}>
-                      <span className={`badge ${nid === 'GATEWAY' ? 'badge-primary' : 'badge-subtle font-mono'}`}>
+                      <span className={`badge ${nid === 'GATEWAY' ? 'badge-primary' : 'badge-gray'}`} style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)' }}>
                         {nid}
                       </span>
-                      {i < activeRoutePath.length - 1 && <ChevronRight size={14} className="text-muted" />}
+                      {i < activeRoutePath.length - 1 && <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />}
                     </React.Fragment>
                   ))
                 ) : (
-                  <span className="text-xs font-mono text-muted">No route calculated</span>
+                  <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>No route calculated</span>
                 )}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted font-mono">Trace Origin Node:</span>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>Trace Origin Node:</span>
             <select
               value={selectedRouteNodeId}
               onChange={(e) => setSelectedRouteNodeId(e.target.value)}
-              className="px-2.5 py-1 rounded bg-bg border border-strong text-xs font-mono text-white"
+              className="form-input"
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
             >
               {topology.nodes.map((n) => (
                 <option key={n.node_id} value={n.node_id}>
@@ -172,7 +173,7 @@ export const TopologyView: React.FC = () => {
           <div
             className="card relative overflow-hidden"
             style={{
-              background: 'radial-gradient(circle at 50% 30%, #152033 0%, #0c121e 100%)',
+              background: 'radial-gradient(circle at 50% 30%, var(--bg-surface) 0%, var(--bg-body) 100%)',
               minHeight: '540px',
               display: 'flex',
               alignItems: 'center',
@@ -181,7 +182,7 @@ export const TopologyView: React.FC = () => {
             }}
           >
             {/* Background Layer Labels */}
-            <div className="absolute left-4 top-4 flex flex-col gap-24 pointer-events-none opacity-40 font-mono text-xs text-muted">
+            <div className="absolute left-4 top-4 flex flex-col gap-24 pointer-events-none opacity-60 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
               <div>LAYER 1 • ROOT GATEWAY</div>
               <div>LAYER 2 • DIRECT CHILDREN</div>
               <div>LAYER 3 • LEAF RELAY NODES</div>
@@ -190,12 +191,12 @@ export const TopologyView: React.FC = () => {
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" style={{ maxHeight: '520px' }}>
               <defs>
                 <linearGradient id="linkActive" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.8" />
+                  <stop offset="0%" stopColor="#7189A6" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#7189A6" stopOpacity="0.8" />
                 </linearGradient>
                 <linearGradient id="linkRoute" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity="0.9" />
+                  <stop offset="0%" stopColor="#88B394" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#88B394" stopOpacity="0.9" />
                 </linearGradient>
                 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="3" result="glow" />
@@ -218,8 +219,8 @@ export const TopologyView: React.FC = () => {
 
                 let strokeColor = 'url(#linkActive)';
                 if (isRouteHighlighted) strokeColor = 'url(#linkRoute)';
-                else if (isDown) strokeColor = '#ef4444';
-                else if (isDegraded) strokeColor = '#f59e0b';
+                else if (isDown) strokeColor = '#C98282';
+                else if (isDegraded) strokeColor = '#D8B878';
 
                 return (
                   <g key={`${link.source_node_id}-${link.target_node_id}`}>
@@ -242,7 +243,7 @@ export const TopologyView: React.FC = () => {
                     <text
                       x={(srcPos.x + tgtPos.x) / 2}
                       y={(srcPos.y + tgtPos.y) / 2 - 6}
-                      fill={isRouteHighlighted ? '#f59e0b' : '#94a3b8'}
+                      fill={isRouteHighlighted ? '#88B394' : '#8A9BA8'}
                       fontSize="9"
                       fontFamily="monospace"
                       textAnchor="middle"
@@ -264,8 +265,8 @@ export const TopologyView: React.FC = () => {
                 const isOnline = node.status === 'ONLINE';
                 const isDegraded = node.status === 'DEGRADED';
 
-                let fillColor = isOnline ? '#06b6d4' : isDegraded ? '#f59e0b' : '#ef4444';
-                if (isRoot) fillColor = '#10b981';
+                let fillColor = isOnline ? '#7189A6' : isDegraded ? '#D8B878' : '#C98282';
+                if (isRoot) fillColor = '#88B394';
 
                 return (
                   <g
@@ -296,8 +297,8 @@ export const TopologyView: React.FC = () => {
                       cx={pos.x}
                       cy={pos.y}
                       r={isRoot ? 24 : 18}
-                      fill="#0f172a"
-                      stroke={isSelected ? '#38bdf8' : fillColor}
+                      fill="#FFFFFF"
+                      stroke={isSelected ? '#5B7692' : fillColor}
                       strokeWidth={isSelected ? 3 : 2}
                       filter="url(#glow)"
                     />
@@ -306,7 +307,7 @@ export const TopologyView: React.FC = () => {
                     <text
                       x={pos.x}
                       y={pos.y + 4}
-                      fill="#ffffff"
+                      fill={fillColor}
                       fontSize={isRoot ? '10' : '9'}
                       fontWeight="bold"
                       fontFamily="monospace"
@@ -319,7 +320,7 @@ export const TopologyView: React.FC = () => {
                     <text
                       x={pos.x}
                       y={pos.y + (isRoot ? 36 : 28)}
-                      fill="#94a3b8"
+                      fill="#8A9BA8"
                       fontSize="9"
                       fontFamily="monospace"
                       textAnchor="middle"
@@ -338,40 +339,40 @@ export const TopologyView: React.FC = () => {
           {selectedLink ? (
             /* Link Details Inspector */
             <div className="card p-5">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-strong">
+              <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <div className="flex items-center gap-2">
-                  <Wifi size={18} className="text-cyan" />
-                  <h3 className="text-lg font-bold">Link Telemetry</h3>
+                  <Wifi size={18} style={{ color: 'var(--accent-primary)' }} />
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Link Telemetry</h3>
                 </div>
-                <span className={`badge ${selectedLink.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}`}>
+                <span className={`badge ${selectedLink.status === 'ACTIVE' ? 'badge-emerald' : 'badge-red'}`}>
                   {selectedLink.status}
                 </span>
               </div>
 
               <div className="space-y-4 text-xs font-mono">
                 <div>
-                  <span className="text-muted">Link Pair:</span>
-                  <div className="text-sm font-bold text-white mt-0.5">
+                  <span style={{ color: 'var(--text-muted)' }}>Link Pair:</span>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.125rem' }}>
                     {selectedLink.source_node_id} ↔ {selectedLink.target_node_id}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">RSSI Signal:</span>
-                    <div className="text-sm font-bold text-cyan mt-1">{selectedLink.rssi_dbm} dBm</div>
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>RSSI Signal:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-primary)', marginTop: '0.25rem' }}>{selectedLink.rssi_dbm} dBm</div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Packet Loss:</span>
-                    <div className="text-sm font-bold text-white mt-1">{selectedLink.packet_loss_percent}%</div>
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Packet Loss:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>{selectedLink.packet_loss_percent}%</div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Link Latency:</span>
-                    <div className="text-sm font-bold text-white mt-1">{selectedLink.latency_ms.toFixed(1)} ms</div>
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Link Latency:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>{selectedLink.latency_ms.toFixed(1)} ms</div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Last Update:</span>
-                    <div className="text-sm font-bold text-white mt-1">
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Last Update:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                       {selectedLink.last_update ? new Date(selectedLink.last_update).toLocaleTimeString() : 'Live'}
                     </div>
                   </div>
@@ -381,93 +382,93 @@ export const TopologyView: React.FC = () => {
           ) : selectedNode ? (
             /* Node Details Inspector */
             <div className="card p-5">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-strong">
+              <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <div>
                   <div className="flex items-center gap-2">
-                    <Cpu size={18} className="text-cyan" />
-                    <h3 className="text-lg font-bold">{selectedNode.node_id}</h3>
+                    <Cpu size={18} style={{ color: 'var(--accent-primary)' }} />
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{selectedNode.node_id}</h3>
                     {selectedNode.layer === 1 && <span className="badge badge-primary">ROOT</span>}
                   </div>
-                  <div className="text-xs text-muted font-mono mt-0.5">{selectedNode.mac_address}</div>
+                  <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginTop: '0.125rem' }}>{selectedNode.mac_address}</div>
                 </div>
                 <span
                   className={`badge ${
                     selectedNode.status === 'ONLINE'
-                      ? 'badge-success'
+                      ? 'badge-emerald'
                       : selectedNode.status === 'DEGRADED'
-                      ? 'badge-warning'
-                      : 'badge-danger'
+                      ? 'badge-amber'
+                      : 'badge-red'
                   }`}
                 >
                   {selectedNode.status}
                 </span>
               </div>
 
-              <div className="space-y-3.5 text-xs font-mono">
+              <div className="space-y-3\.5 text-xs font-mono">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Tree Layer / Depth:</span>
-                    <div className="text-sm font-bold text-cyan mt-1">Layer {selectedNode.layer}</div>
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Tree Layer / Depth:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-primary)', marginTop: '0.25rem' }}>Layer {selectedNode.layer}</div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Parent Node:</span>
-                    <div className="text-sm font-bold text-white mt-1">{selectedNode.parent_id || 'None (Root)'}</div>
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Parent Node:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>{selectedNode.parent_id || 'None (Root)'}</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Battery Level:</span>
-                    <div className="text-sm font-bold text-white mt-1 flex items-center gap-1">
-                      <Battery size={14} className="text-emerald-400" />
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Battery Level:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }} className="flex items-center gap-1">
+                      <Battery size={14} style={{ color: 'var(--accent-emerald)' }} />
                       {selectedNode.battery_percent !== null && selectedNode.battery_percent !== undefined
                         ? `${selectedNode.battery_percent.toFixed(1)}%`
                         : 'Mains Power'}
                     </div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Packet Loss:</span>
-                    <div className="text-sm font-bold text-white mt-1">{selectedNode.packet_loss_percent}%</div>
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Packet Loss:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>{selectedNode.packet_loss_percent}%</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Packets RX / TX:</span>
-                    <div className="text-sm font-bold text-white mt-1">
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Packets RX / TX:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                       {selectedNode.packets_received} / {selectedNode.packets_transmitted}
                     </div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                    <span className="text-muted">Uptime:</span>
-                    <div className="text-sm font-bold text-white mt-1">
+                  <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Uptime:</span>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                       {Math.floor(selectedNode.uptime_seconds / 60)}m {selectedNode.uptime_seconds % 60}s
                     </div>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                  <span className="text-muted">Direct Children ({selectedNode.children.length}):</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Direct Children ({selectedNode.children.length}):</span>
+                  <div className="flex flex-wrap gap-1\.5 mt-1\.5">
                     {selectedNode.children.length > 0 ? (
                       selectedNode.children.map((c) => (
-                        <span key={c} className="badge badge-subtle">
+                        <span key={c} className="badge badge-gray" style={{ fontSize: '0.625rem' }}>
                           {c}
                         </span>
                       ))
                     ) : (
-                      <span className="text-muted italic">Leaf Node (No children)</span>
+                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Leaf Node (No children)</span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-surface border border-strong">
-                  <span className="text-muted">Upstream Route to Root:</span>
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <div style={{ padding: '0.625rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Upstream Route to Root:</span>
+                  <div className="flex items-center gap-1\.5 mt-1\.5 flex-wrap">
                     {selectedNode.current_route.map((hop, i) => (
                       <React.Fragment key={hop}>
-                        <span className="badge badge-primary">{hop}</span>
-                        {i < selectedNode.current_route.length - 1 && <ChevronRight size={12} className="text-muted" />}
+                        <span className="badge badge-primary" style={{ fontSize: '0.625rem' }}>{hop}</span>
+                        {i < selectedNode.current_route.length - 1 && <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
                       </React.Fragment>
                     ))}
                   </div>
@@ -475,9 +476,9 @@ export const TopologyView: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="card p-6 text-center text-muted">
+            <div className="card p-6 text-center" style={{ color: 'var(--text-muted)' }}>
               <Info size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-xs font-mono">Select a node or wireless link on the map to inspect telemetry</p>
+              <p style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>Select a node or wireless link on the map to inspect telemetry</p>
             </div>
           )}
         </div>

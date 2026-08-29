@@ -60,35 +60,51 @@ export const NetworkAnalyticsView: React.FC = () => {
     loadData();
   }, []);
 
-  // Real-time updates via WebSockets
-  useMeshEvent('topology.updated', () => loadData());
-  useMeshEvent('node.online', () => loadData());
+  useMeshEvent('simulation.updated', () => loadData());
+  useMeshEvent('simulation.event', () => loadData());
   useMeshEvent('node.offline', () => loadData());
-  useMeshEvent('node.updated', () => loadData());
-  useMeshEvent('route.changed', () => loadData());
-  useMeshEvent('system.alert', () => loadData());
+  useMeshEvent('node.online', () => loadData());
 
-  const showToast = (msg: string) => {
+  const showFeedback = (msg: string) => {
     setActionFeedback(msg);
     setTimeout(() => setActionFeedback(null), 4000);
   };
 
   const handleSimulateParentFailure = async () => {
     try {
-      const res = await api.failSimulationParent({ parent_node_id: selectedParentId, auto_reheal: true });
-      showToast(`Parent failure simulated on ${selectedParentId}. Self-healing re-parented ${res.affected_children?.length || 0} nodes in ${res.recovery_time_ms}ms!`);
-      loadData();
+      await api.simulateEvent({
+        event_type: 'NODE_FAILURE',
+        target_id: selectedParentId,
+      });
+      showFeedback(`Simulated failure on ${selectedParentId}`);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleToggleNodeOffline = async () => {
+    try {
+      await api.simulateEvent({
+        event_type: 'TOGGLE_NODE_POWER',
+        target_id: selectedNodeOfflineId,
+      });
+      showFeedback(`Toggled power on ${selectedNodeOfflineId}`);
+      await loadData();
     } catch (err: any) {
       alert(err.message);
     }
   };
 
   const handleSimulateGatewayFailure = async () => {
-    if (!confirm('Simulate Root Gateway failure? This will sever all routes across the entire mesh.')) return;
+    if (!confirm('WARNING: Simulating Gateway failure will trigger a full mesh partition and force all nodes into ISOLATED mode. Proceed?')) return;
     try {
-      await api.failSimulationGateway();
-      showToast('Root Gateway failure simulated! All mesh nodes entered ISOLATED/DEGRADED state.');
-      loadData();
+      await api.simulateEvent({
+        event_type: 'GATEWAY_FAILURE',
+        target_id: 'GATEWAY',
+      });
+      showFeedback('Gateway crash simulated');
+      await loadData();
     } catch (err: any) {
       alert(err.message);
     }
@@ -96,26 +112,11 @@ export const NetworkAnalyticsView: React.FC = () => {
 
   const handleRestoreFullNetwork = async () => {
     try {
-      await api.restoreSimulationNetwork();
-      showToast('Full Mesh Network restored to healthy operational baseline!');
-      loadData();
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  const handleToggleNodeOffline = async () => {
-    const node = nodes.find((n) => n.node_id === selectedNodeOfflineId);
-    if (!node) return;
-    try {
-      if (node.status === 'ONLINE') {
-        await api.takeSimulationNodeOffline(selectedNodeOfflineId);
-        showToast(`Node ${selectedNodeOfflineId} taken OFFLINE`);
-      } else {
-        await api.bringSimulationNodeOnline(selectedNodeOfflineId);
-        showToast(`Node ${selectedNodeOfflineId} brought back ONLINE`);
-      }
-      loadData();
+      await api.simulateEvent({
+        event_type: 'RESTORE_NETWORK',
+      });
+      showFeedback('Full network restoration triggered');
+      await loadData();
     } catch (err: any) {
       alert(err.message);
     }
@@ -124,14 +125,17 @@ export const NetworkAnalyticsView: React.FC = () => {
   const handleDegradeLink = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.degradeSimulationLink({
-        source_node_id: degradeSrc,
-        target_node_id: degradeDst,
-        packet_loss_percent: degradeLoss,
-        latency_ms: degradeLatency,
+      await api.simulateEvent({
+        event_type: 'DEGRADE_LINK',
+        target_id: degradeSrc,
+        details: {
+          destination_id: degradeDst,
+          packet_loss: degradeLoss,
+          latency_ms: degradeLatency,
+        },
       });
-      showToast(`Link noise injected between ${degradeSrc} and ${degradeDst}`);
-      loadData();
+      showFeedback(`Link degraded: ${degradeSrc} -> ${degradeDst}`);
+      await loadData();
     } catch (err: any) {
       alert(err.message);
     }
@@ -143,119 +147,118 @@ export const NetworkAnalyticsView: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <Activity size={24} className="text-cyan" />
-            <h2 className="text-2xl font-extrabold tracking-tight">MESH FAILURE, RECOVERY & NETWORK ANALYTICS</h2>
+            <Activity size={24} style={{ color: 'var(--accent-primary)' }} />
+            <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Network Analytics</h2>
           </div>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            APPLICATION-LEVEL SIMULATOR • SELF-HEALING TREE RECONFIGURATION • RECOVERY TIME MEASUREMENT
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Application-level simulator, self-healing tree reconfiguration, and recovery time measurement
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {actionFeedback && (
-            <span className="badge badge-success animate-fade-in font-mono text-xs">
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-emerald)', background: 'rgba(136, 179, 148, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
               ✓ {actionFeedback}
             </span>
           )}
           <button onClick={handleRestoreFullNetwork} className="btn btn-sm btn-primary">
-            <RotateCcw size={14} /> Restore Full Network
+            <RotateCcw size={14} /> Reset Network
           </button>
           <button onClick={loadData} disabled={loading} className="btn btn-sm">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Metrics
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>
       </div>
 
-      {/* KPI Metrics Deck */}
+      {/* KPI Cards */}
       {metrics && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 font-mono">
-          <div className="card p-3.5">
-            <span className="text-xs text-muted block mb-1">Node Availability</span>
-            <div className="text-2xl font-extrabold text-white flex items-center gap-1.5">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div className="card p-3\.5">
+            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Node Availability</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }} className="flex items-center gap-1\.5 text-main">
               {metrics.node_availability_percent}%
-              <span className="text-xs text-emerald-400 font-normal">
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>
                 ({metrics.online_nodes}/{metrics.total_nodes})
               </span>
             </div>
-            <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div style={{ width: '100%', height: '6px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', marginTop: '0.5rem', overflow: 'hidden' }}>
               <div
-                className="bg-emerald-400 h-full rounded-full transition-all duration-500"
-                style={{ width: `${metrics.node_availability_percent}%` }}
+                style={{ height: '100%', background: 'var(--accent-emerald)', borderRadius: '999px', transition: 'all 0.5s', width: `${metrics.node_availability_percent}%` }}
               />
             </div>
           </div>
 
-          <div className="card p-3.5">
-            <span className="text-xs text-muted block mb-1">Packet Delivery Ratio</span>
-            <div className="text-2xl font-extrabold text-cyan">
+          <div className="card p-3\.5">
+            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Packet Delivery Ratio</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>
               {metrics.packet_delivery_ratio}%
             </div>
-            <div className="text-[11px] text-muted mt-1">Loss: {metrics.packet_loss_percent}%</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>Loss: {metrics.packet_loss_percent}%</div>
           </div>
 
-          <div className="card p-3.5">
-            <span className="text-xs text-muted block mb-1">Average Latency</span>
-            <div className="text-2xl font-extrabold text-white">
-              {metrics.average_latency_ms} <span className="text-xs font-normal text-muted">ms</span>
+          <div className="card p-3\.5">
+            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Average Latency</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+              {metrics.average_latency_ms} <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>ms</span>
             </div>
-            <div className="text-[11px] text-muted mt-1">End-to-end multi-hop</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>End-to-end multi-hop</div>
           </div>
 
-          <div className="card p-3.5">
-            <span className="text-xs text-muted block mb-1">Average Hop Count</span>
-            <div className="text-2xl font-extrabold text-white">
-              {metrics.average_hop_count} <span className="text-xs font-normal text-muted">hops</span>
+          <div className="card p-3\.5">
+            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Average Hop Count</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+              {metrics.average_hop_count} <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>hops</span>
             </div>
-            <div className="text-[11px] text-muted mt-1">To Root Gateway</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>To Root Gateway</div>
           </div>
 
-          <div className="card p-3.5">
-            <span className="text-xs text-muted block mb-1">Topology Changes</span>
-            <div className="text-2xl font-extrabold text-amber-400">
+          <div className="card p-3\.5">
+            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Topology Changes</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>
               {metrics.topology_changes_count}
             </div>
-            <div className="text-[11px] text-muted mt-1">Self-healing events</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>Self-healing events</div>
           </div>
 
-          <div className="card p-3.5 bg-gradient-to-br from-slate-900 to-emerald-950/40 border-emerald-500/30">
-            <span className="text-xs text-emerald-400 font-bold block mb-1">Latest Recovery Time</span>
-            <div className="text-2xl font-extrabold text-emerald-400">
-              {metrics.latest_recovery_time_ms} <span className="text-xs font-normal text-muted">ms</span>
+          <div className="card p-3\.5" style={{ background: 'rgba(136, 179, 148, 0.05)', borderColor: 'rgba(136, 179, 148, 0.3)' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--accent-emerald)', textTransform: 'uppercase' }}>Latest Recovery Time</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
+              {metrics.latest_recovery_time_ms} <span style={{ fontSize: '0.75rem', opacity: 0.7, fontWeight: 400 }}>ms</span>
             </div>
-            <div className="text-[11px] text-muted mt-1">Avg: {metrics.average_recovery_time_ms}ms</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>Avg: {metrics.average_recovery_time_ms}ms</div>
           </div>
         </div>
       )}
 
       {/* Recovery Time Formula Visualizer */}
-      <div className="card mb-6 p-4 bg-surface border-strong font-mono text-xs">
+      <div className="card mb-6 p-4" style={{ background: 'var(--bg-surface)' }}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-cyan/10 text-cyan">
+            <div style={{ padding: '0.5rem', borderRadius: '8px', background: 'rgba(113, 137, 166, 0.1)', color: 'var(--accent-primary)' }}>
               <Clock size={20} />
             </div>
             <div>
-              <div className="font-bold text-sm text-white flex items-center gap-2">
-                RECOVERY TIME METRIC DEFINITION & FORMULA
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                RECOVERY TIME METRIC DEFINITION
               </div>
-              <div className="text-muted mt-0.5">
-                <code className="text-cyan font-bold">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
+                <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
                   recovery_time = Timestamp(Communication Re-established) − Timestamp(Failure Detected)
                 </code>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-4" style={{ fontSize: '0.75rem' }}>
             <div className="text-right">
-              <span className="text-muted block">Measured Window:</span>
-              <strong className="text-white">
+              <span style={{ color: 'var(--text-muted)', display: 'block' }}>Measured Window:</span>
+              <strong style={{ color: 'var(--text-main)' }}>
                 {metrics ? `${(metrics.latest_recovery_time_ms / 1000).toFixed(2)} seconds` : '—'}
               </strong>
             </div>
-            <div className="text-right border-l border-strong pl-4">
-              <span className="text-muted block">Autonomous Re-parenting:</span>
-              <strong className="text-emerald-400">ACTIVE</strong>
+            <div className="text-right pl-4" style={{ borderLeft: '1px solid var(--border-subtle)' }}>
+              <span style={{ color: 'var(--text-muted)', display: 'block' }}>Autonomous Re-parenting:</span>
+              <strong style={{ color: 'var(--accent-emerald)' }}>ACTIVE</strong>
             </div>
           </div>
         </div>
@@ -265,27 +268,28 @@ export const NetworkAnalyticsView: React.FC = () => {
         {/* NETWORK SIMULATOR Action Console */}
         <div className="col-span-12 lg:col-span-5 space-y-6">
           <div className="card p-5">
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-strong">
-              <Zap size={18} className="text-cyan" />
-              <h3 className="text-base font-bold">NETWORK SIMULATOR CONTROL CONSOLE</h3>
+            <div className="flex items-center gap-2 mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <Zap size={18} style={{ color: 'var(--accent-primary)' }} />
+              <h3 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>Network Simulator Control</h3>
             </div>
 
-            <div className="space-y-4 font-mono text-xs">
-              {/* Scenario 1: Parent Node Failure & Self-Healing */}
-              <div className="p-3 rounded-lg bg-surface border border-strong">
-                <div className="font-bold text-white mb-1 flex items-center justify-between">
-                  <span>1. Simulate Parent Failure & Self-Healing</span>
-                  <span className="badge badge-warning text-[10px]">SCENARIO</span>
+            <div className="space-y-4" style={{ fontSize: '0.75rem' }}>
+              {/* Scenario 1 */}
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>1. Simulate Parent Failure</span>
+                  <span className="badge badge-amber" style={{ fontSize: '0.625rem' }}>SCENARIO</span>
                 </div>
-                <p className="text-muted text-[11px] mb-2.5">
-                  Disables a parent relay node. Affected child nodes will detect orphan state, automatically discover a new parent, and re-establish upstream route.
+                <p style={{ color: 'var(--text-muted)', marginBottom: '0.625rem', fontSize: '0.75rem' }}>
+                  Disables a parent relay node. Affected child nodes will detect orphan state and automatically discover a new parent.
                 </p>
 
                 <div className="flex gap-2">
                   <select
                     value={selectedParentId}
                     onChange={(e) => setSelectedParentId(e.target.value)}
-                    className="form-input text-xs"
+                    className="form-input"
+                    style={{ fontSize: '0.75rem' }}
                   >
                     {nodes
                       .filter((n) => n.node_id !== 'GATEWAY' && n.children.length > 0)
@@ -296,18 +300,18 @@ export const NetworkAnalyticsView: React.FC = () => {
                       ))}
                   </select>
 
-                  <button onClick={handleSimulateParentFailure} className="btn btn-sm btn-warning shrink-0">
+                  <button onClick={handleSimulateParentFailure} className="btn btn-sm btn-warning flex-shrink-0">
                     Fail Parent
                   </button>
                 </div>
               </div>
 
-              {/* Scenario 2: Single Node Toggle */}
-              <div className="p-3 rounded-lg bg-surface border border-strong">
-                <div className="font-bold text-white mb-1 flex items-center justify-between">
-                  <span>2. Single Node Offline / Recovery Toggle</span>
+              {/* Scenario 2 */}
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>2. Single Node Offline Toggle</span>
                 </div>
-                <p className="text-muted text-[11px] mb-2.5">
+                <p style={{ color: 'var(--text-muted)', marginBottom: '0.625rem', fontSize: '0.75rem' }}>
                   Simulate individual node battery depletion, shutdown, or field power recovery.
                 </p>
 
@@ -315,7 +319,8 @@ export const NetworkAnalyticsView: React.FC = () => {
                   <select
                     value={selectedNodeOfflineId}
                     onChange={(e) => setSelectedNodeOfflineId(e.target.value)}
-                    className="form-input text-xs"
+                    className="form-input"
+                    style={{ fontSize: '0.75rem' }}
                   >
                     {nodes.map((n) => (
                       <option key={n.node_id} value={n.node_id}>
@@ -324,26 +329,27 @@ export const NetworkAnalyticsView: React.FC = () => {
                     ))}
                   </select>
 
-                  <button onClick={handleToggleNodeOffline} className="btn btn-sm shrink-0">
+                  <button onClick={handleToggleNodeOffline} className="btn btn-sm flex-shrink-0">
                     <Power size={13} /> Toggle State
                   </button>
                 </div>
               </div>
 
-              {/* Scenario 3: Link Degradation Injector */}
-              <div className="p-3 rounded-lg bg-surface border border-strong">
-                <div className="font-bold text-white mb-1 flex items-center justify-between">
-                  <span>3. Link Degradation & Latency Injection</span>
+              {/* Scenario 3 */}
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>3. Link Degradation Injection</span>
                 </div>
 
-                <form onSubmit={handleDegradeLink} className="space-y-2.5 mt-2">
+                <form onSubmit={handleDegradeLink} className="space-y-2\.5 mt-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-muted block text-[10px] mb-0.5">Source Node:</label>
+                      <label style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', marginBottom: '0.125rem' }}>Source Node:</label>
                       <select
                         value={degradeSrc}
                         onChange={(e) => setDegradeSrc(e.target.value)}
-                        className="form-input text-xs"
+                        className="form-input"
+                        style={{ fontSize: '0.75rem' }}
                       >
                         {nodes.map((n) => (
                           <option key={n.node_id} value={n.node_id}>
@@ -353,11 +359,12 @@ export const NetworkAnalyticsView: React.FC = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="text-muted block text-[10px] mb-0.5">Target Node:</label>
+                      <label style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', marginBottom: '0.125rem' }}>Target Node:</label>
                       <select
                         value={degradeDst}
                         onChange={(e) => setDegradeDst(e.target.value)}
-                        className="form-input text-xs"
+                        className="form-input"
+                        style={{ fontSize: '0.75rem' }}
                       >
                         {nodes.map((n) => (
                           <option key={n.node_id} value={n.node_id}>
@@ -370,25 +377,27 @@ export const NetworkAnalyticsView: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-muted block text-[10px] mb-0.5">Drop Rate ({degradeLoss}%):</label>
+                      <label style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', marginBottom: '0.125rem' }}>Drop Rate ({degradeLoss}%):</label>
                       <input
                         type="number"
                         min="0"
                         max="100"
                         value={degradeLoss}
                         onChange={(e) => setDegradeLoss(parseInt(e.target.value, 10))}
-                        className="form-input text-xs"
+                        className="form-input"
+                        style={{ fontSize: '0.75rem' }}
                       />
                     </div>
                     <div>
-                      <label className="text-muted block text-[10px] mb-0.5">Latency ({degradeLatency}ms):</label>
+                      <label style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', marginBottom: '0.125rem' }}>Latency ({degradeLatency}ms):</label>
                       <input
                         type="number"
                         min="5"
                         max="2000"
                         value={degradeLatency}
                         onChange={(e) => setDegradeLatency(parseInt(e.target.value, 10))}
-                        className="form-input text-xs"
+                        className="form-input"
+                        style={{ fontSize: '0.75rem' }}
                       />
                     </div>
                   </div>
@@ -399,13 +408,13 @@ export const NetworkAnalyticsView: React.FC = () => {
                 </form>
               </div>
 
-              {/* Scenario 4: Root Gateway Failure */}
-              <div className="p-3 rounded-lg bg-red-950/20 border border-red-500/30">
-                <div className="font-bold text-red-400 mb-1 flex items-center justify-between">
+              {/* Scenario 4 */}
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(201, 130, 130, 0.05)', border: '1px solid rgba(201, 130, 130, 0.3)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--accent-red)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>4. Root Gateway Failure Simulation</span>
                   <AlertOctagon size={14} />
                 </div>
-                <p className="text-muted text-[11px] mb-2.5">
+                <p style={{ color: 'var(--text-muted)', marginBottom: '0.625rem', fontSize: '0.75rem' }}>
                   Simulates complete root coordinator failure. All mesh nodes lose upstream gateway connectivity and enter ISOLATED mode.
                 </p>
 
@@ -417,59 +426,64 @@ export const NetworkAnalyticsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Live Failure & Recovery Event Timeline */}
+        {/* Live Timeline */}
         <div className="col-span-12 lg:col-span-7">
           <div className="card p-5 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-strong">
+            <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
               <div className="flex items-center gap-2">
-                <Layers size={18} className="text-cyan" />
-                <h3 className="text-base font-bold">LIVE FAILURE & RECOVERY EVENT TIMELINE</h3>
+                <Layers size={18} style={{ color: 'var(--accent-primary)' }} />
+                <h3 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>Live Event Timeline</h3>
               </div>
-              <span className="text-xs text-muted font-mono">{timeline.length} Events Logged</span>
+              <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{timeline.length} Events</span>
             </div>
 
-            {/* Timeline Stream */}
-            <div className="space-y-2.5 overflow-y-auto max-h-[560px] pr-1 font-mono text-xs">
+            <div style={{ overflowY: 'auto', maxHeight: '560px', paddingRight: '0.25rem' }} className="space-y-2\.5">
               {timeline.length > 0 ? (
                 timeline.map((evt, idx) => {
-                  let badgeClass = 'badge-subtle';
-                  let borderClass = 'border-strong';
+                  let badgeClass = 'badge-gray';
+                  let borderClass = 'var(--border-subtle)';
+                  let bgClass = 'transparent';
+                  
                   if (evt.level === 'CRITICAL') {
-                    badgeClass = 'badge-danger';
-                    borderClass = 'border-red-500/40 bg-red-950/10';
+                    badgeClass = 'badge-red';
+                    borderClass = 'rgba(201, 130, 130, 0.3)';
+                    bgClass = 'rgba(201, 130, 130, 0.05)';
                   } else if (evt.level === 'WARNING') {
-                    badgeClass = 'badge-warning';
-                    borderClass = 'border-amber-500/40 bg-amber-950/10';
+                    badgeClass = 'badge-amber';
+                    borderClass = 'rgba(216, 184, 120, 0.3)';
+                    bgClass = 'rgba(216, 184, 120, 0.05)';
                   } else if (evt.level === 'SUCCESS') {
-                    badgeClass = 'badge-success';
-                    borderClass = 'border-emerald-500/40 bg-emerald-950/10';
+                    badgeClass = 'badge-emerald';
+                    borderClass = 'rgba(136, 179, 148, 0.3)';
+                    bgClass = 'rgba(136, 179, 148, 0.05)';
                   }
 
                   return (
                     <div
                       key={`${evt.timestamp}-${idx}`}
-                      className={`p-3 rounded-lg border ${borderClass} flex items-start justify-between gap-3 transition-all`}
+                      style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${borderClass}`, background: bgClass }}
+                      className="flex items-start justify-between gap-3"
                     >
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-muted font-bold text-[11px] shrink-0 mt-0.5">
+                      <div className="flex items-start gap-2\.5">
+                        <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-muted)', marginTop: '0.125rem' }} className="shrink-0">
                           {evt.timestamp}
                         </span>
 
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-white">{evt.node_id}</span>
-                            <span className={`badge ${badgeClass} text-[10px]`}>
+                            <span style={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-main)' }}>{evt.node_id}</span>
+                            <span className={`badge ${badgeClass}`} style={{ fontSize: '0.625rem' }}>
                               {evt.event_type}
                             </span>
                           </div>
-                          <div className="text-muted text-[11px] mt-1">{evt.message}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{evt.message}</div>
                         </div>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div className="text-center py-12 text-muted text-xs">
+                <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                   No network events recorded yet. Trigger a failure scenario above to observe live logs.
                 </div>
               )}

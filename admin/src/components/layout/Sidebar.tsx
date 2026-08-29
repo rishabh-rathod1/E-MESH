@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Activity,
   AlertOctagon,
   AlertTriangle,
   Boxes,
+  ChevronLeft,
+  ChevronRight,
   Cpu,
   FileText,
   Layers,
@@ -35,114 +37,149 @@ interface SidebarProps {
   setActiveTab: (tab: ActiveTab) => void;
   activeSosCount: number;
   activeIncidentCount: number;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }
+
+const navSections = [
+  {
+    label: 'Operations',
+    items: [
+      { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: Activity },
+      {
+        id: 'sos' as ActiveTab,
+        label: 'Emergency SOS',
+        icon: AlertOctagon,
+        badgeKey: 'sos' as const,
+      },
+      {
+        id: 'incidents' as ActiveTab,
+        label: 'Incidents',
+        icon: AlertTriangle,
+        badgeKey: 'incidents' as const,
+      },
+      { id: 'topology' as ActiveTab, label: 'Network Map', icon: Network },
+    ],
+  },
+  {
+    label: 'Infrastructure',
+    items: [
+      { id: 'nodes' as ActiveTab, label: 'Devices', icon: Cpu },
+      { id: 'responders' as ActiveTab, label: 'Responders', icon: Shield },
+      { id: 'people' as ActiveTab, label: 'People', icon: Users },
+      { id: 'resources' as ActiveTab, label: 'Resources', icon: Boxes },
+      { id: 'announcements' as ActiveTab, label: 'Broadcasts', icon: Megaphone },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { id: 'analytics' as ActiveTab, label: 'Reports', icon: Layers },
+      { id: 'network-analytics' as ActiveTab, label: 'Monitoring', icon: Activity },
+      { id: 'audit' as ActiveTab, label: 'Audit Logs', icon: FileText },
+      { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },
+    ],
+  },
+];
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   activeSosCount,
   activeIncidentCount,
+  mobileOpen,
+  onMobileClose,
 }) => {
-  const navItems = [
-    { id: 'dashboard' as ActiveTab, label: 'Command Center', icon: Activity },
-    {
-      id: 'sos' as ActiveTab,
-      label: 'Emergency SOS',
-      icon: AlertOctagon,
-      badge: activeSosCount > 0 ? activeSosCount : undefined,
-    },
-    {
-      id: 'incidents' as ActiveTab,
-      label: 'Incidents & Triage',
-      icon: AlertTriangle,
-      badge: activeIncidentCount > 0 ? activeIncidentCount : undefined,
-    },
-    { id: 'topology' as ActiveTab, label: 'Mesh Topology', icon: Network },
-    { id: 'nodes' as ActiveTab, label: 'Node Hardware', icon: Cpu },
-    { id: 'responders' as ActiveTab, label: 'Responders Roster', icon: Shield },
-    { id: 'people' as ActiveTab, label: 'People Directory', icon: Users },
-    { id: 'resources' as ActiveTab, label: 'Asset Inventory', icon: Boxes },
-    { id: 'announcements' as ActiveTab, label: 'Broadcasts', icon: Megaphone },
-    { id: 'analytics' as ActiveTab, label: 'Incident KPIs', icon: Layers },
-    { id: 'network-analytics' as ActiveTab, label: 'Failure & Recovery', icon: Activity },
-    { id: 'audit' as ActiveTab, label: 'Audit Trail', icon: FileText },
-    { id: 'settings' as ActiveTab, label: 'System & Simulation', icon: Settings },
-  ];
+  const [collapsed, setCollapsed] = useState(false);
+
+  const getBadge = (key?: 'sos' | 'incidents') => {
+    if (key === 'sos' && activeSosCount > 0) return activeSosCount;
+    if (key === 'incidents' && activeIncidentCount > 0) return activeIncidentCount;
+    return undefined;
+  };
+
+  const handleNavClick = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    onMobileClose();
+  };
+
+  const sidebarClasses = [
+    'app-sidebar',
+    collapsed ? 'collapsed' : '',
+    mobileOpen ? 'mobile-open' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <aside className="app-sidebar">
+    <aside className={sidebarClasses}>
       <div className="sidebar-header">
-        <div className="flex items-center justify-center p-2" style={{ background: 'rgba(59, 130, 246, 0.15)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-          <Radio size={20} className="text-blue" />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0.375rem',
+            background: 'rgba(113, 137, 166, 0.12)',
+            borderRadius: '8px',
+            border: '1px solid rgba(113, 137, 166, 0.2)',
+            flexShrink: 0,
+          }}
+        >
+          <Radio size={18} style={{ color: 'var(--accent-primary)' }} />
         </div>
-        <div>
-          <div className="font-bold text-sm" style={{ letterSpacing: '0.5px' }}>E-MESH NOC</div>
-          <div className="text-xs text-muted">Emergency Mesh Ops</div>
+        <div className="sidebar-brand-text">
+          <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-main)', letterSpacing: '0.3px' }}>
+            E-MESH NOC
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+            Admin Panel
+          </div>
         </div>
       </div>
 
       <nav className="sidebar-nav">
-        <div className="text-xs font-bold text-dim px-3 py-1 mb-1 uppercase" style={{ letterSpacing: '1px' }}>
-          Operations
-        </div>
-        {navItems.slice(0, 4).map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              <div className="flex items-center gap-3">
-                <Icon size={18} className={isActive ? 'text-blue' : 'text-muted'} />
-                <span>{item.label}</span>
-              </div>
-              {item.badge !== undefined && <span className="nav-item-badge">{item.badge}</span>}
-            </button>
-          );
-        })}
-
-        <div className="text-xs font-bold text-dim px-3 py-1 mt-4 mb-1 uppercase" style={{ letterSpacing: '1px' }}>
-          Infrastructure & Personnel
-        </div>
-        {navItems.slice(4, 9).map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              <div className="flex items-center gap-3">
-                <Icon size={18} className={isActive ? 'text-blue' : 'text-muted'} />
-                <span>{item.label}</span>
-              </div>
-            </button>
-          );
-        })}
-
-        <div className="text-xs font-bold text-dim px-3 py-1 mt-4 mb-1 uppercase" style={{ letterSpacing: '1px' }}>
-          Administration
-        </div>
-        {navItems.slice(9).map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              <div className="flex items-center gap-3">
-                <Icon size={18} className={isActive ? 'text-blue' : 'text-muted'} />
-                <span>{item.label}</span>
-              </div>
-            </button>
-          );
-        })}
+        {navSections.map((section, sIdx) => (
+          <React.Fragment key={section.label}>
+            {sIdx > 0 && <div style={{ height: '0.375rem' }} />}
+            <div className="sidebar-section-label">{section.label}</div>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const badge = getBadge((item as any).badgeKey);
+              return (
+                <button
+                  key={item.id}
+                  className={`nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => handleNavClick(item.id)}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon
+                      size={17}
+                      style={{
+                        color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span className="nav-label">{item.label}</span>
+                  </div>
+                  {badge !== undefined && <span className="nav-item-badge">{badge}</span>}
+                  <span className="nav-item-tooltip">{item.label}</span>
+                </button>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </nav>
+
+      <button
+        className="sidebar-collapse-btn"
+        onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+      </button>
     </aside>
   );
 };

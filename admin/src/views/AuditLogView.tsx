@@ -47,9 +47,9 @@ export const AuditLogView: React.FC = () => {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight">SECURITY AUDIT & COMPLIANCE TRAIL</h2>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            IMMUTABLE SYSTEM LOGS • OPERATOR ACTIONS • RECORD OF DISPATCHES ({total} ENTRIES)
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Audit Log</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            System logs, operator actions, and compliance records ({total} entries)
           </p>
         </div>
 

@@ -64,11 +64,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
       {/* Top Title & Refresh */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight">OPERATIONAL COMMAND OVERVIEW</h2>
-          <p className="text-xs text-muted font-mono mt-0.5">MESH ROUTING LAYER • ACTIVE TELEMETRY MONITOR</p>
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            Operational Overview
+          </h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Mesh network status and active operations
+          </p>
         </div>
         <button onClick={loadData} disabled={loading} className="btn btn-sm">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Stream
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
@@ -76,20 +80,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
       {activeSOSList.length > 0 && (
         <div className="emergency-banner">
           <div className="flex items-center gap-3">
-            <div className="p-2" style={{ background: 'var(--accent-red)', borderRadius: '50%', color: '#fff' }}>
-              <AlertOctagon size={20} />
+            <div
+              style={{
+                padding: '0.5rem',
+                background: 'var(--accent-red)',
+                borderRadius: '50%',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <AlertOctagon size={18} />
             </div>
             <div>
-              <div className="text-sm font-bold text-red uppercase tracking-wider">
-                CRITICAL SOS ALERT IN PROGRESS ({activeSOSList.length} Active Distress Signal{activeSOSList.length > 1 ? 's' : ''})
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--accent-red)' }}>
+                Active SOS Alert ({activeSOSList.length} Distress Signal{activeSOSList.length > 1 ? 's' : ''})
               </div>
-              <div className="text-xs text-muted">
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Immediate responder dispatch required. People affected: {activeSOSList.reduce((acc, s) => acc + s.people_count, 0)}
               </div>
             </div>
           </div>
           <button onClick={() => setActiveTab('sos')} className="btn btn-danger btn-sm">
-            Triage SOS Queue <ArrowRight size={14} />
+            Triage SOS <ArrowRight size={14} />
           </button>
         </div>
       )}
@@ -99,50 +113,50 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
         <div className="metric-card border-red">
           <div className="flex justify-between items-start">
             <div>
-              <div className="text-xs font-bold text-muted uppercase tracking-wider">Active SOS Calls</div>
-              <div className="text-3xl font-extrabold mt-1 text-red font-mono">{analytics?.sos.active ?? 0}</div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active SOS Calls</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{analytics?.sos.active ?? 0}</div>
             </div>
-            <div className="p-2" style={{ background: 'rgba(239, 68, 68, 0.15)', borderRadius: '8px' }}>
-              <AlertOctagon size={20} className="text-red" />
+            <div style={{ padding: '0.5rem', background: 'rgba(201, 130, 130, 0.1)', borderRadius: '8px' }}>
+              <AlertOctagon size={18} style={{ color: 'var(--accent-red)' }} />
             </div>
           </div>
-          <div className="text-xs text-dim mt-3 flex items-center justify-between">
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Total Logged: {analytics?.sos.total ?? 0}</span>
-            <span className="text-red font-semibold">Priority: Max</span>
+            <span style={{ color: 'var(--accent-red)', fontWeight: 600 }}>Priority: Max</span>
           </div>
         </div>
 
         <div className="metric-card border-amber">
           <div className="flex justify-between items-start">
             <div>
-              <div className="text-xs font-bold text-muted uppercase tracking-wider">Active Incidents</div>
-              <div className="text-3xl font-extrabold mt-1 text-amber font-mono">{analytics?.incidents.active ?? 0}</div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Incidents</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>{analytics?.incidents.active ?? 0}</div>
             </div>
-            <div className="p-2" style={{ background: 'rgba(245, 158, 11, 0.15)', borderRadius: '8px' }}>
-              <AlertTriangle size={20} className="text-amber" />
+            <div style={{ padding: '0.5rem', background: 'rgba(216, 184, 120, 0.1)', borderRadius: '8px' }}>
+              <AlertTriangle size={18} style={{ color: 'var(--accent-amber)' }} />
             </div>
           </div>
-          <div className="text-xs text-dim mt-3 flex items-center justify-between">
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Resolved: {analytics?.incidents.resolved ?? 0}</span>
-            <span className="text-amber font-semibold">Triage Required</span>
+            <span style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Triage Required</span>
           </div>
         </div>
 
         <div className="metric-card border-emerald">
           <div className="flex justify-between items-start">
             <div>
-              <div className="text-xs font-bold text-muted uppercase tracking-wider">Mesh Nodes Online</div>
-              <div className="text-3xl font-extrabold mt-1 text-emerald font-mono">
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Mesh Nodes Online</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
                 {analytics?.mesh.online_nodes ?? 0} / {analytics?.mesh.total_nodes ?? 0}
               </div>
             </div>
-            <div className="p-2" style={{ background: 'rgba(16, 185, 129, 0.15)', borderRadius: '8px' }}>
-              <Radio size={20} className="text-emerald" />
+            <div style={{ padding: '0.5rem', background: 'rgba(136, 179, 148, 0.1)', borderRadius: '8px' }}>
+              <Radio size={18} style={{ color: 'var(--accent-emerald)' }} />
             </div>
           </div>
-          <div className="text-xs text-dim mt-3 flex items-center justify-between">
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Mesh Health: {analytics?.mesh.health_pct ?? 100}%</span>
-            <span className="flex items-center gap-1 text-emerald">
+            <span className="flex items-center gap-1" style={{ color: 'var(--accent-emerald)' }}>
               <BatteryCharging size={12} /> Avg {analytics?.mesh.avg_battery_pct ?? 100}%
             </span>
           </div>
@@ -151,16 +165,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
         <div className="metric-card border-blue">
           <div className="flex justify-between items-start">
             <div>
-              <div className="text-xs font-bold text-muted uppercase tracking-wider">Field Responders</div>
-              <div className="text-3xl font-extrabold mt-1 text-blue font-mono">
-                {analytics?.responders.available ?? 0} <span className="text-sm font-normal text-dim">Avail</span>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Field Responders</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-blue)', fontFamily: 'var(--font-mono)' }}>
+                {analytics?.responders.available ?? 0} <span style={{ fontSize: '0.8125rem', fontWeight: 400, color: 'var(--text-dim)' }}>Avail</span>
               </div>
             </div>
-            <div className="p-2" style={{ background: 'rgba(59, 130, 246, 0.15)', borderRadius: '8px' }}>
-              <Shield size={20} className="text-blue" />
+            <div style={{ padding: '0.5rem', background: 'rgba(113, 137, 166, 0.1)', borderRadius: '8px' }}>
+              <Shield size={18} style={{ color: 'var(--accent-blue)' }} />
             </div>
           </div>
-          <div className="text-xs text-dim mt-3 flex items-center justify-between">
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Deployed: {analytics?.responders.deployed ?? 0}</span>
             <span>Total: {analytics?.responders.total ?? 0}</span>
           </div>
@@ -168,24 +182,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
       </div>
 
       {/* Quick Action Bar */}
-      <div className="card mb-6" style={{ background: 'var(--bg-surface)' }}>
+      <div className="card mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Zap size={16} className="text-amber" />
-            <span className="text-xs font-bold uppercase tracking-wider">Quick Dispatch Actions</span>
+            <Zap size={15} style={{ color: 'var(--accent-amber)' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-main)' }}>Quick Actions</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setActiveTab('announcements')} className="btn btn-sm">
-              <Megaphone size={14} className="text-amber" /> Broadcast Notice
+              <Megaphone size={13} style={{ color: 'var(--accent-amber)' }} /> Broadcast
             </button>
             <button onClick={() => setActiveTab('responders')} className="btn btn-sm">
-              <Shield size={14} className="text-blue" /> Mobilize Responders
+              <Shield size={13} style={{ color: 'var(--accent-blue)' }} /> Responders
             </button>
             <button onClick={() => setActiveTab('nodes')} className="btn btn-sm">
-              <Cpu size={14} className="text-cyan" /> Add Mesh Node
+              <Cpu size={13} style={{ color: 'var(--accent-cyan)' }} /> Add Node
             </button>
             <button onClick={() => setActiveTab('topology')} className="btn btn-sm btn-primary">
-              <Activity size={14} /> View Live Network Map
+              <Activity size={13} /> Network Map
             </button>
           </div>
         </div>
@@ -198,16 +212,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={18} className="text-amber" />
-                <h3 className="text-base font-bold">LIVE INCIDENT STREAM</h3>
+                <AlertTriangle size={16} style={{ color: 'var(--accent-amber)' }} />
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>Recent Incidents</h3>
               </div>
-              <button onClick={() => setActiveTab('incidents')} className="text-xs text-blue font-semibold flex items-center gap-1">
-                View All Incidents <ArrowRight size={12} />
+              <button
+                onClick={() => setActiveTab('incidents')}
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--accent-blue)',
+                  fontWeight: 600,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}
+              >
+                View All <ArrowRight size={12} />
               </button>
             </div>
 
             {recentIncidents.length === 0 ? (
-              <div className="text-center py-8 text-muted text-sm">No incidents currently reported. Mesh is calm.</div>
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                No incidents currently reported.
+              </div>
             ) : (
               <div className="table-container">
                 <table className="data-table">
@@ -243,12 +272,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
                       return (
                         <tr key={inc.id} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('incidents')}>
                           <td><span className={`badge ${priorityColor}`}>{inc.priority}</span></td>
-                          <td className="font-semibold">{inc.category.replace(/_/g, ' ')}</td>
-                          <td className="text-muted" style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <td style={{ fontWeight: 600 }}>{inc.category.replace(/_/g, ' ')}</td>
+                          <td style={{ color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {inc.description}
                           </td>
                           <td><span className={`badge ${statusColor}`}>{inc.status.replace(/_/g, ' ')}</span></td>
-                          <td className="text-xs font-mono text-dim">
+                          <td style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                             {new Date(inc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </td>
                         </tr>
@@ -264,8 +293,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
         {/* Right: Operational Status Panels */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
           <div className="card">
-            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider flex items-center gap-2">
-              <Activity size={16} className="text-blue" /> Severity Breakdown
+            <h3 className="flex items-center gap-2" style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
+              <Activity size={15} style={{ color: 'var(--accent-blue)' }} /> Severity Breakdown
             </h3>
             <div className="flex flex-col gap-3">
               {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((prio) => {
@@ -283,11 +312,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
 
                 return (
                   <div key={prio}>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
+                    <div className="flex justify-between" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                       <span>{prio}</span>
-                      <span className="font-mono">{count} ({pct}%)</span>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>{count} ({pct}%)</span>
                     </div>
-                    <div style={{ height: '6px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div style={{ height: '5px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '999px' }} />
                     </div>
                   </div>
@@ -297,21 +326,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
           </div>
 
           <div className="card">
-            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider flex items-center gap-2">
-              <Radio size={16} className="text-emerald" /> Gateway Simulator
+            <h3 className="flex items-center gap-2" style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
+              <Radio size={15} style={{ color: 'var(--accent-emerald)' }} /> Gateway Simulator
             </h3>
-            <div className="text-xs text-muted space-y-2 font-mono">
+            <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
               <div className="flex justify-between py-1" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span>LAYER:</span> <span className="text-emerald">Software Emulation</span>
+                <span>LAYER:</span> <span style={{ color: 'var(--accent-emerald)' }}>Software Emulation</span>
               </div>
               <div className="flex justify-between py-1" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span>HARDWARE:</span> <span>ESP32-WROOM-32</span>
+                <span>HARDWARE:</span> <span style={{ color: 'var(--text-main)' }}>ESP32-WROOM-32</span>
               </div>
               <div className="flex justify-between py-1" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span>PACKET LOSS:</span> <span className="text-emerald">0.02%</span>
+                <span>PACKET LOSS:</span> <span style={{ color: 'var(--accent-emerald)' }}>0.02%</span>
               </div>
               <div className="flex justify-between py-1">
-                <span>HOP LIMIT:</span> <span>7 Hops Max</span>
+                <span>HOP LIMIT:</span> <span style={{ color: 'var(--text-main)' }}>7 Hops Max</span>
               </div>
             </div>
           </div>

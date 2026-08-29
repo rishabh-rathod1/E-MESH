@@ -37,9 +37,9 @@ export const AnalyticsView: React.FC = () => {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight">OPERATIONAL ANALYTICS & KPIS</h2>
-          <p className="text-xs text-muted font-mono mt-0.5">
-            HISTORICAL AGGREGATES • RESPONSE DURATION • SYSTEM PERFORMANCE METRICS
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Analytics & KPIs</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+            Historical aggregates, response duration, and system performance metrics
           </p>
         </div>
 

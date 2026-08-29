@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, Radio, User as UserIcon } from 'lucide-react';
+import { LogOut, Menu, Radio, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onMobileMenuToggle: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
   const { user, logout } = useAuth();
   const [timeStr, setTimeStr] = useState('');
 
@@ -18,37 +22,82 @@ export const Header: React.FC = () => {
 
   return (
     <header className="app-header">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 px-3 py-1" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '9999px' }}>
+      <div className="flex items-center gap-3">
+        <button className="mobile-menu-btn" onClick={onMobileMenuToggle} title="Toggle navigation">
+          <Menu size={20} />
+        </button>
+
+        <div
+          className="flex items-center gap-2"
+          style={{
+            padding: '0.25rem 0.625rem',
+            background: 'rgba(136, 179, 148, 0.1)',
+            border: '1px solid rgba(136, 179, 148, 0.25)',
+            borderRadius: 'var(--radius-full)',
+          }}
+        >
           <span className="pulse-dot online" />
-          <span className="text-xs font-semibold text-emerald uppercase tracking-wider">Gateway Online</span>
-          <span className="text-xs text-dim">| Sim-Mesh</span>
+          <span
+            style={{
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              color: 'var(--accent-emerald)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Gateway Online
+          </span>
+          <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)' }}>| Sim-Mesh</span>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 text-xs font-mono text-muted">
-          <Radio size={14} className="text-cyan" />
+        <div
+          className="hidden md:flex items-center gap-2"
+          style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}
+        >
+          <Radio size={13} style={{ color: 'var(--accent-primary)' }} />
           <span>FREQ: 2.4 GHz (ESP-NOW)</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-5">
-        <div className="text-xs font-mono text-muted hidden sm:block">
-          <span className="text-dim">SYS TIME:</span> {timeStr}
+      <div className="flex items-center gap-4">
+        <div
+          className="hidden sm:block"
+          style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}
+        >
+          <span style={{ color: 'var(--text-dim)' }}>SYS TIME:</span> {timeStr}
         </div>
 
-        <div className="flex items-center gap-3 pl-3" style={{ borderLeft: '1px solid var(--border-subtle)' }}>
+        <div
+          className="flex items-center gap-3"
+          style={{ paddingLeft: '0.75rem', borderLeft: '1px solid var(--border-subtle)' }}
+        >
           <div className="flex items-center gap-2">
-            <div className="p-1.5" style={{ background: 'var(--bg-surface-elevated)', borderRadius: '50%', border: '1px solid var(--border-strong)' }}>
-              <UserIcon size={16} className="text-blue" />
+            <div
+              style={{
+                padding: '0.3rem',
+                background: 'var(--bg-surface-elevated)',
+                borderRadius: '50%',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <UserIcon size={14} style={{ color: 'var(--accent-primary)' }} />
             </div>
             <div>
-              <div className="text-sm font-semibold leading-none">{user?.full_name || user?.username}</div>
-              <div className="text-xs text-dim mt-0.5">{user?.role}</div>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1, color: 'var(--text-main)' }}>
+                {user?.full_name || user?.username}
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.125rem' }}>
+                {user?.role}
+              </div>
             </div>
           </div>
 
           <button onClick={logout} className="btn-icon" title="Sign out of NOC">
-            <LogOut size={18} />
+            <LogOut size={16} />
           </button>
         </div>
       </div>
