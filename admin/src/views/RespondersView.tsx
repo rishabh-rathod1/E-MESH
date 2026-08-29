@@ -115,9 +115,9 @@ export const RespondersView: React.FC = () => {
             const statusColor =
               resp.status === 'AVAILABLE'
                 ? 'badge-emerald'
-                : resp.status === 'DEPLOYED'
+                : resp.status === 'ASSIGNED' || resp.status === 'DEPLOYED'
                 ? 'badge-blue'
-                : resp.status === 'BUSY'
+                : resp.status === 'RESPONDING' || resp.status === 'BUSY'
                 ? 'badge-amber'
                 : 'badge-gray';
 
@@ -157,6 +157,9 @@ export const RespondersView: React.FC = () => {
                     onChange={(e) => handleStatusChange(resp.id, e.target.value as ResponderStatus)}
                   >
                     <option value="AVAILABLE">AVAILABLE</option>
+                    <option value="ASSIGNED">ASSIGNED</option>
+                    <option value="RESPONDING">RESPONDING</option>
+                    <option value="UNAVAILABLE">UNAVAILABLE</option>
                     <option value="DEPLOYED">DEPLOYED</option>
                     <option value="BUSY">BUSY</option>
                     <option value="RESTING">RESTING</option>

@@ -71,6 +71,10 @@ class ResponderStatus(str, Enum):
     ASSIGNED = "ASSIGNED"
     RESPONDING = "RESPONDING"
     UNAVAILABLE = "UNAVAILABLE"
+    DEPLOYED = "DEPLOYED"
+    BUSY = "BUSY"
+    RESTING = "RESTING"
+    OFFLINE = "OFFLINE"
 
 
 class ResourceStatus(str, Enum):

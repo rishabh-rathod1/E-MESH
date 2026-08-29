@@ -28,7 +28,15 @@ export type NodeStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'ISOLATED';
 
 export type NodeLinkStatus = 'ACTIVE' | 'DEGRADED' | 'DOWN';
 
-export type ResponderStatus = 'AVAILABLE' | 'DEPLOYED' | 'BUSY' | 'RESTING' | 'OFFLINE';
+export type ResponderStatus =
+  | 'AVAILABLE'
+  | 'ASSIGNED'
+  | 'RESPONDING'
+  | 'UNAVAILABLE'
+  | 'DEPLOYED'
+  | 'BUSY'
+  | 'RESTING'
+  | 'OFFLINE';
 
 export type ResourceStatus = 'AVAILABLE' | 'LOW_STOCK' | 'DEPLETED' | 'RESERVED';
 
