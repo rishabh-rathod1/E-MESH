@@ -4,11 +4,13 @@ import {
   Cpu,
   Edit2,
   Plus,
-  Radio,
   RefreshCw,
   Signal,
   Trash2,
   X,
+  Search,
+  MoreVertical,
+  Activity
 } from 'lucide-react';
 import { api } from '../api/client';
 import { MeshNode } from '../api/types';
@@ -16,7 +18,7 @@ import { MeshNode } from '../api/types';
 export const NodesView: React.FC = () => {
   const [nodes, setNodes] = useState<MeshNode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [editNode, setEditNode] = useState<MeshNode | null>(null);
 
   // Form states
@@ -44,6 +46,16 @@ export const NodesView: React.FC = () => {
     loadNodes();
   }, []);
 
+  const resetForm = () => {
+    setEditNode(null);
+    setNodeId('');
+    setNodeName('');
+    setBatteryLevel(100);
+    setSignalQuality(90);
+    setHopCount(1);
+    setStatus('ONLINE');
+  };
+
   const handleCreateNode = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
@@ -55,9 +67,8 @@ export const NodesView: React.FC = () => {
         signal_quality: signalQuality,
         hop_count: hopCount,
       });
-      setShowAddModal(false);
-      setNodeId('');
-      setNodeName('');
+      setShowDrawer(false);
+      resetForm();
       await loadNodes();
     } catch (err: any) {
       alert(err.message);
@@ -78,7 +89,8 @@ export const NodesView: React.FC = () => {
         signal_quality: signalQuality,
         hop_count: hopCount,
       });
-      setEditNode(null);
+      setShowDrawer(false);
+      resetForm();
       await loadNodes();
     } catch (err: any) {
       alert(err.message);
@@ -97,31 +109,43 @@ export const NodesView: React.FC = () => {
     }
   };
 
+  const openAdd = () => {
+    resetForm();
+    setShowDrawer(true);
+  };
+
   const openEdit = (n: MeshNode) => {
     setEditNode(n);
+    setNodeId(n.node_id);
     setNodeName(n.name);
     setStatus(n.status);
     setBatteryLevel(n.battery_level);
     setSignalQuality(n.signal_quality);
     setHopCount(n.hop_count);
+    setShowDrawer(true);
   };
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="space-y-4">
+      {/* Page Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Mesh Devices</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-            Registered wireless ESP32 relay nodes ({nodes.length} total)
+          <h2 className="text-xl font-bold text-main leading-tight">Infrastructure Devices</h2>
+          <p className="text-sm text-muted mt-1">
+            Registered wireless relay nodes ({nodes.length})
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowAddModal(true)} className="btn btn-sm btn-primary">
-            <Plus size={14} /> Register Node
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input type="text" placeholder="Filter devices..." className="form-input pl-8" style={{ width: '200px' }} />
+          </div>
+          <button onClick={loadNodes} disabled={loading} className="btn">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={loadNodes} disabled={loading} className="btn btn-sm">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+          <button onClick={openAdd} className="btn btn-primary">
+            <Plus size={14} /> Register Node
           </button>
         </div>
       </div>
@@ -134,57 +158,62 @@ export const NodesView: React.FC = () => {
               <th>Status</th>
               <th>Node ID</th>
               <th>Name</th>
-              <th>Battery</th>
+              <th>Health / Batt</th>
               <th>Signal</th>
-              <th>Hops</th>
+              <th>Route</th>
               <th>Firmware</th>
               <th>Last Seen</th>
-              <th>Actions</th>
+              <th className="actions"></th>
             </tr>
           </thead>
           <tbody>
             {nodes.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)' }}>
-                  No mesh nodes registered. Click "Register Node" to deploy one.
+                <td colSpan={9} className="text-center p-8 text-muted">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Activity size={24} className="opacity-30" />
+                    <span className="text-sm font-medium">No mesh nodes registered.</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               nodes.map((node) => {
-                const statusColor =
-                  node.status === 'ONLINE'
-                    ? 'badge-emerald'
-                    : node.status === 'DEGRADED'
-                    ? 'badge-amber'
-                    : 'badge-red';
+                const isOnline = node.status === 'ONLINE';
+                const isDegraded = node.status === 'DEGRADED';
+                const statusColor = isOnline ? 'emerald' : isDegraded ? 'amber' : 'red';
 
                 return (
-                  <tr key={node.id}>
-                    <td><span className={`badge ${statusColor}`}>{node.status}</span></td>
-                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 600, fontSize: '0.75rem' }}>{node.node_id}</td>
-                    <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{node.name}</td>
+                  <tr key={node.id} className="hover:bg-surface-elevated cursor-pointer" onClick={() => openEdit(node)}>
                     <td>
-                      <span className="flex items-center gap-1" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--accent-emerald)' }}>
-                        <Battery size={13} /> {node.battery_level}%
-                      </span>
+                      <div className="status-indicator">
+                        <span className={`status-dot bg-${statusColor} ${isOnline ? 'animate-pulse' : ''}`}></span>
+                        <span className="text-xs uppercase">{node.status}</span>
+                      </div>
+                    </td>
+                    <td className="font-mono text-xs font-bold text-blue">{node.node_id}</td>
+                    <td className="font-semibold text-main">{node.name}</td>
+                    <td>
+                      <div className="flex items-center gap-1 font-mono text-xs text-emerald">
+                        <Battery size={12} /> {node.battery_level}%
+                      </div>
                     </td>
                     <td>
-                      <span className="flex items-center gap-1" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--accent-blue)' }}>
-                        <Signal size={13} /> {node.signal_quality}%
-                      </span>
+                      <div className="flex items-center gap-1 font-mono text-xs text-blue">
+                        <Signal size={12} /> -{100 - node.signal_quality} dBm
+                      </div>
                     </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{node.hop_count} Hop{node.hop_count === 1 ? '' : 's'}</td>
-                    <td style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{node.firmware_version || 'v1.4.0-esp32'}</td>
-                    <td style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                      {node.last_seen ? new Date(node.last_seen).toLocaleTimeString() : 'Online'}
+                    <td className="font-mono text-xs text-muted">{node.hop_count} Hop{node.hop_count === 1 ? '' : 's'}</td>
+                    <td className="font-mono text-xs text-dim">{node.firmware_version || 'v1.4.0'}</td>
+                    <td className="font-mono text-xs text-muted">
+                      {node.last_seen ? new Date(node.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live'}
                     </td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => openEdit(node)} className="btn-icon" title="Edit Node">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteNode(node.id, node.name)} className="btn-icon" style={{ color: 'var(--accent-red)' }} title="Decommission Node">
+                    <td className="actions" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => handleDeleteNode(node.id, node.name)} className="btn-icon hover:text-red hover:bg-red/5" title="Remove Node">
                           <Trash2 size={14} />
+                        </button>
+                        <button onClick={() => openEdit(node)} className="btn-icon" title="Node Options">
+                          <MoreVertical size={14} />
                         </button>
                       </div>
                     </td>
@@ -196,174 +225,120 @@ export const NodesView: React.FC = () => {
         </table>
       </div>
 
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center" style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
-              <h3 className="flex items-center gap-2" style={{ fontSize: '0.9375rem', fontWeight: 700 }}>
-                <Cpu size={17} style={{ color: 'var(--accent-primary)' }} /> Register Mesh Node
+      {/* Side Drawer for Add/Edit */}
+      {showDrawer && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setShowDrawer(false)}></div>
+          <div className="drawer-panel">
+            <div className="drawer-header">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Cpu size={16} className="text-primary" />
+                {editNode ? 'Device Configuration' : 'Register New Device'}
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="btn-icon"><X size={18} /></button>
+              <button onClick={() => setShowDrawer(false)} className="btn-icon"><X size={16} /></button>
             </div>
 
-            <form onSubmit={handleCreateNode}>
-              <div className="form-group">
-                <label className="form-label">Node Hardware ID (Unique)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. node_05 or ESP32_E4:65:B8:11"
-                  className="form-input"
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}
-                  value={nodeId}
-                  onChange={(e) => setNodeId(e.target.value)}
-                />
-              </div>
+            <div className="drawer-content space-y-4">
+              {editNode && (
+                <div className="widget bg-surface-elevated border-subtle mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center bg-card border border-subtle rounded-md" style={{ width: '40px', height: '40px' }}>
+                      <Cpu size={20} className="text-blue" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold">{editNode.name}</div>
+                      <div className="text-xs font-mono text-muted">{editNode.node_id}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div className="form-group">
-                <label className="form-label">Display Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sector 4 - Water Tower Repeater"
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem' }}
-                  value={nodeName}
-                  onChange={(e) => setNodeName(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
+              <form id="node-form" onSubmit={editNode ? handleUpdateNode : handleCreateNode} className="space-y-4">
                 <div className="form-group">
-                  <label className="form-label">Battery (%)</label>
+                  <label className="form-label">Hardware Identifier</label>
                   <input
-                    type="number"
-                    min="0"
-                    max="100"
+                    type="text"
+                    required
+                    placeholder="MAC or Unique ID"
+                    className="form-input font-mono"
+                    value={nodeId}
+                    onChange={(e) => setNodeId(e.target.value)}
+                    disabled={!!editNode}
+                  />
+                  {!editNode && <span className="text-xs text-dim">Must match the exact MAC or flashed ID of the physical ESP32.</span>}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Display Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sector 4 Relay"
                     className="form-input"
-                    style={{ fontSize: '0.8125rem' }}
-                    value={batteryLevel}
-                    onChange={(e) => setBatteryLevel(parseInt(e.target.value))}
+                    value={nodeName}
+                    onChange={(e) => setNodeName(e.target.value)}
                   />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Signal (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="form-input"
-                    style={{ fontSize: '0.8125rem' }}
-                    value={signalQuality}
-                    onChange={(e) => setSignalQuality(parseInt(e.target.value))}
-                  />
+
+                {editNode && (
+                  <div className="form-group">
+                    <label className="form-label">Operational Status</label>
+                    <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+                      <option value="ONLINE">Online (Active)</option>
+                      <option value="DEGRADED">Degraded (Warning)</option>
+                      <option value="OFFLINE">Offline (Critical)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="form-label">Simulated Battery (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="form-input"
+                      value={batteryLevel}
+                      onChange={(e) => setBatteryLevel(parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Simulated Signal (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="form-input"
+                      value={signalQuality}
+                      onChange={(e) => setSignalQuality(parseInt(e.target.value))}
+                    />
+                  </div>
                 </div>
+                
                 <div className="form-group">
-                  <label className="form-label">Hops</label>
+                  <label className="form-label">Tree Hop Count</label>
                   <input
                     type="number"
                     min="1"
-                    max="7"
                     className="form-input"
-                    style={{ fontSize: '0.8125rem' }}
                     value={hopCount}
                     onChange={(e) => setHopCount(parseInt(e.target.value))}
                   />
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-2" style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-sm">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="btn btn-sm btn-primary">
-                  {actionLoading ? 'Registering...' : 'Deploy Node'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editNode && (
-        <div className="modal-backdrop" onClick={() => setEditNode(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center" style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
-              <h3 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>Configure Node: {editNode.node_id}</h3>
-              <button onClick={() => setEditNode(null)} className="btn-icon"><X size={18} /></button>
+              </form>
             </div>
 
-            <form onSubmit={handleUpdateNode}>
-              <div className="form-group">
-                <label className="form-label">Node Name</label>
-                <input
-                  type="text"
-                  required
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem' }}
-                  value={nodeName}
-                  onChange={(e) => setNodeName(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Network Status</label>
-                <select className="form-select" style={{ fontSize: '0.8125rem' }} value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="ONLINE">ONLINE</option>
-                  <option value="DEGRADED">DEGRADED</option>
-                  <option value="OFFLINE">OFFLINE</option>
-                  <option value="ISOLATED">ISOLATED</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="form-group">
-                  <label className="form-label">Battery (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="form-input"
-                    style={{ fontSize: '0.8125rem' }}
-                    value={batteryLevel}
-                    onChange={(e) => setBatteryLevel(parseInt(e.target.value))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Signal (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="form-input"
-                    style={{ fontSize: '0.8125rem' }}
-                    value={signalQuality}
-                    onChange={(e) => setSignalQuality(parseInt(e.target.value))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Hop Count</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="7"
-                    className="form-input"
-                    style={{ fontSize: '0.8125rem' }}
-                    value={hopCount}
-                    onChange={(e) => setHopCount(parseInt(e.target.value))}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2" style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-                <button type="button" onClick={() => setEditNode(null)} className="btn btn-sm">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="btn btn-sm btn-primary">
-                  {actionLoading ? 'Saving...' : 'Update Node'}
-                </button>
-              </div>
-            </form>
+            <div className="drawer-footer">
+              <button type="button" onClick={() => setShowDrawer(false)} className="btn">
+                Cancel
+              </button>
+              <button type="submit" form="node-form" disabled={actionLoading} className="btn btn-primary">
+                {actionLoading ? 'Saving...' : (editNode ? 'Save Configuration' : 'Register Device')}
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

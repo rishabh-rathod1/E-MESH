@@ -16,6 +16,7 @@ import {
   Trash2,
   Wifi,
   Zap,
+  X
 } from 'lucide-react';
 import { api } from '../api/client';
 import { SimulatedNode, SimulationNetworkStatus } from '../api/types';
@@ -35,14 +36,8 @@ export const SystemSettingsView: React.FC = () => {
   const [lossSlider, setLossSlider] = useState<number>(0);
   const [latencySlider, setLatencySlider] = useState<number>(15);
 
-  // Link degradation panel state
-  const [linkSrc, setLinkSrc] = useState<string>('EM-01');
-  const [linkDst, setLinkDst] = useState<string>('EM-03');
-  const [linkLoss, setLinkLoss] = useState<number>(50);
-  const [linkLatency, setLinkLatency] = useState<number>(120);
-
-  // New node modal/form state
-  const [showAddNodeModal, setShowAddNodeModal] = useState(false);
+  // New node drawer/form state
+  const [showDrawer, setShowDrawer] = useState(false);
   const [newNodeId, setNewNodeId] = useState('');
   const [newNodeParent, setNewNodeParent] = useState('GATEWAY');
   const [newNodeBattery, setNewNodeBattery] = useState(100);
@@ -152,22 +147,6 @@ export const SystemSettingsView: React.FC = () => {
     }
   };
 
-  const handleDegradeLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.degradeSimulationLink({
-        source_node_id: linkSrc,
-        target_node_id: linkDst,
-        packet_loss_percent: linkLoss,
-        latency_ms: linkLatency,
-      });
-      showFeedback(`Link ${linkSrc} <-> ${linkDst} degraded`);
-      loadData();
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
   const handleCreateNode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNodeId.trim()) return;
@@ -177,7 +156,7 @@ export const SystemSettingsView: React.FC = () => {
         parent_id: newNodeParent,
         battery_percent: newNodeBattery,
       });
-      setShowAddNodeModal(false);
+      setShowDrawer(false);
       setNewNodeId('');
       showFeedback(`New Node ${newNodeId} deployed into mesh`);
       loadData();
@@ -200,29 +179,29 @@ export const SystemSettingsView: React.FC = () => {
   const currentNode = nodes.find((n) => n.node_id === selectedNodeId);
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Cpu size={24} style={{ color: 'var(--accent-primary)' }} />
-            <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Simulation Control Lab</h2>
+            <Cpu size={20} className="text-primary" />
+            <h2 className="text-xl font-bold text-main leading-tight">Simulation Control Lab</h2>
           </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+          <p className="text-sm text-muted mt-1">
             Application-level simulator, dynamic self-healing tree controls
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {actionMessage && (
-            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-emerald)', background: 'rgba(136, 179, 148, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+            <span className="text-xs font-mono text-emerald bg-emerald/10 px-2 py-1 rounded-sm border border-emerald/20 animate-in fade-in">
               ✓ {actionMessage}
             </span>
           )}
-          <button onClick={() => setShowAddNodeModal(true)} className="btn btn-sm btn-primary">
+          <button onClick={() => setShowDrawer(true)} className="btn btn-primary">
             <Plus size={14} /> Deploy Node
           </button>
-          <button onClick={loadData} disabled={loading} className="btn btn-sm">
+          <button onClick={loadData} disabled={loading} className="btn">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>
@@ -230,84 +209,70 @@ export const SystemSettingsView: React.FC = () => {
 
       {/* Network Overview Summary Banner */}
       {networkStatus && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 font-mono text-xs">
-          <div className="card p-3">
-            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', textTransform: 'uppercase' }}>Target Protocol</span>
-            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-primary)', marginTop: '0.125rem' }}>{networkStatus.protocol_target}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+          <div className="metric-widget py-3" style={{ borderTop: '2px solid var(--accent-primary)' }}>
+            <span className="metric-label uppercase tracking-widest text-muted">Target Protocol</span>
+            <div className="text-xl font-bold font-mono text-primary mt-1">{networkStatus.protocol_target}</div>
           </div>
-          <div className="card p-3">
-            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', textTransform: 'uppercase' }}>Tree Depth</span>
-            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.125rem' }}>{networkStatus.max_tree_depth} Layers</div>
+          <div className="metric-widget py-3" style={{ borderTop: '2px solid var(--border-strong)' }}>
+            <span className="metric-label uppercase tracking-widest text-muted">Tree Depth</span>
+            <div className="text-xl font-bold font-mono text-main mt-1">{networkStatus.max_tree_depth} Layers</div>
           </div>
-          <div className="card p-3">
-            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', textTransform: 'uppercase' }}>Online / Total</span>
-            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent-emerald)', marginTop: '0.125rem' }}>
-              {networkStatus.online_nodes} / {networkStatus.total_nodes} Nodes
+          <div className="metric-widget py-3" style={{ borderTop: '2px solid var(--accent-emerald)' }}>
+            <span className="metric-label uppercase tracking-widest text-muted">Online / Total</span>
+            <div className="text-xl font-bold font-mono text-emerald mt-1">
+              {networkStatus.online_nodes} / {networkStatus.total_nodes} <span className="text-sm">Nodes</span>
             </div>
           </div>
-          <div className="card p-3">
-            <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.6875rem', textTransform: 'uppercase' }}>Active Tree Links</span>
-            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.125rem' }}>{networkStatus.active_links} Links</div>
+          <div className="metric-widget py-3" style={{ borderTop: '2px solid var(--border-strong)' }}>
+            <span className="metric-label uppercase tracking-widest text-muted">Active Tree Links</span>
+            <div className="text-xl font-bold font-mono text-main mt-1">{networkStatus.active_links} <span className="text-sm">Links</span></div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Node Selector & Quick Actions */}
-        <div className="col-span-12 lg:col-span-4">
-          <div className="card p-4">
-            <div className="flex items-center justify-between mb-3 pb-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
-                <Network size={16} style={{ color: 'var(--accent-primary)' }} /> Select Mesh Node
+        <div className="lg:col-span-4">
+          <div className="widget h-full flex flex-col p-0 overflow-hidden">
+            <div className="widget-header border-b border-subtle p-3 bg-surface">
+              <h3 className="text-sm font-bold flex items-center gap-2 text-main">
+                <Network size={16} className="text-primary" /> Select Mesh Node
               </h3>
-              <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{nodes.length} Nodes</span>
             </div>
 
-            <div style={{ maxHeight: '460px', overflowY: 'auto', paddingRight: '0.25rem' }} className="space-y-2">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1" style={{ maxHeight: '500px' }}>
               {nodes.map((node) => {
                 const isSelected = node.node_id === selectedNodeId;
                 const isOnline = node.status === 'ONLINE';
                 const isDegraded = node.status === 'DEGRADED';
                 
-                let borderStyle = '1px solid var(--border-subtle)';
-                let bgStyle = 'var(--bg-surface)';
-                if (isSelected) {
-                  borderStyle = '1px solid var(--accent-primary)';
-                  bgStyle = 'rgba(113, 137, 166, 0.08)';
-                }
-
                 return (
                   <div
                     key={node.node_id}
                     onClick={() => handleNodeSelect(node.node_id)}
-                    style={{ padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: borderStyle, background: bgStyle }}
+                    className={`p-3 rounded-sm cursor-pointer transition-all border ${isSelected ? 'border-primary bg-primary/5' : 'border-subtle bg-surface hover:border-strong'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {isOnline ? (
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-emerald)' }} />
-                        ) : isDegraded ? (
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-amber)' }} />
-                        ) : (
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-red)' }} />
-                        )}
-                        <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>{node.node_id}</span>
+                        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald' : isDegraded ? 'bg-amber' : 'bg-red'}`} />
+                        <span className="text-sm font-bold text-main">{node.node_id}</span>
                         {node.node_id === 'GATEWAY' && (
-                          <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>ROOT</span>
+                          <span className="badge badge-outline text-[10px]">ROOT</span>
                         )}
                       </div>
-                      <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                      <span className="text-xs font-mono text-dim">
                         Layer {node.layer}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-2" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                    <div className="flex items-center justify-between mt-2 text-[11px] text-muted font-mono">
                       <span className="flex items-center gap-1">
-                        <Battery size={11} style={{ color: node.battery_percent && node.battery_percent < 20 ? 'var(--accent-red)' : 'var(--accent-emerald)' }} />
+                        <Battery size={11} className={node.battery_percent && node.battery_percent < 20 ? 'text-red' : 'text-emerald'} />
                         {node.battery_percent}%
                       </span>
                       {node.parent_id && (
-                        <span>To: {node.parent_id}</span>
+                        <span>Upstream: {node.parent_id}</span>
                       )}
                     </div>
                   </div>
@@ -318,18 +283,18 @@ export const SystemSettingsView: React.FC = () => {
         </div>
 
         {/* Selected Node Parameter Lab */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+        <div className="lg:col-span-8">
           {currentNode ? (
-            <div className="card p-5 h-full">
-              <div className="flex items-start justify-between mb-4 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <div className="widget h-full">
+              <div className="widget-header border-b border-subtle pb-4 mb-4 flex items-start justify-between">
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Sliders size={20} style={{ color: 'var(--accent-primary)' }} /> Configure Node: {currentNode.node_id}
+                  <h3 className="text-lg font-bold text-main flex items-center gap-2">
+                    <Sliders size={18} className="text-primary" /> Configure Node: {currentNode.node_id}
                   </h3>
-                  <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginTop: '0.25rem' }} className="flex items-center gap-3">
+                  <div className="text-xs font-mono text-muted mt-1 flex items-center gap-2">
                     <span>Role: {currentNode.node_id === 'GATEWAY' ? 'Root Coordinator' : 'Routing Node / End Device'}</span>
                     <span>•</span>
-                    <span style={{ color: currentNode.status === 'ONLINE' ? 'var(--accent-emerald)' : 'var(--accent-red)' }}>
+                    <span className={currentNode.status === 'ONLINE' ? 'text-emerald font-bold' : 'text-red font-bold'}>
                       Status: {currentNode.status}
                     </span>
                   </div>
@@ -339,11 +304,11 @@ export const SystemSettingsView: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={handleToggleOnline}
-                      className={`btn btn-sm ${currentNode.status === 'ONLINE' ? 'btn-warning' : 'btn-success'}`}
+                      className={`btn btn-sm ${currentNode.status === 'ONLINE' ? 'btn-danger' : 'btn-primary'}`}
                     >
                       <Power size={13} /> {currentNode.status === 'ONLINE' ? 'Force Offline' : 'Bring Online'}
                     </button>
-                    <button onClick={() => handleDeleteNode(currentNode.node_id)} className="btn-icon" style={{ color: 'var(--accent-red)' }} title="Delete Node">
+                    <button onClick={() => handleDeleteNode(currentNode.node_id)} className="btn-icon text-red bg-red/5 hover:bg-red/10" title="Delete Node">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -354,16 +319,15 @@ export const SystemSettingsView: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-6">
                 {/* Routing / Parent */}
                 {currentNode.node_id !== 'GATEWAY' && (
-                  <div className="space-y-2">
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  <div className="space-y-2 p-3 bg-surface-elevated border border-subtle rounded-sm">
+                    <label className="flex justify-between text-xs font-bold text-main uppercase tracking-widest">
                       <span>Upstream Parent (Routing)</span>
-                      <span style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>{parentSelection}</span>
+                      <span className="text-primary font-mono">{parentSelection}</span>
                     </label>
                     <select
                       value={parentSelection}
                       onChange={(e) => setParentSelection(e.target.value)}
-                      className="form-input"
-                      style={{ fontSize: '0.75rem' }}
+                      className="form-select font-mono text-sm"
                     >
                       {nodes
                         .filter((n) => n.node_id !== currentNode.node_id)
@@ -373,17 +337,17 @@ export const SystemSettingsView: React.FC = () => {
                           </option>
                         ))}
                     </select>
-                    <p style={{ fontSize: '0.6875rem', color: 'var(--text-dim)' }}>
-                      Current active route parent for multi-hop.
+                    <p className="text-[11px] text-dim">
+                      Force an upstream route change in the mesh topology.
                     </p>
                   </div>
                 )}
 
                 {/* Battery Override */}
-                <div className="space-y-2">
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                <div className="space-y-2 p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <label className="flex justify-between text-xs font-bold text-main uppercase tracking-widest">
                     <span>Battery Capacity</span>
-                    <span style={{ color: batterySlider < 20 ? 'var(--accent-red)' : 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>{batterySlider}%</span>
+                    <span className={`font-mono font-bold ${batterySlider < 20 ? 'text-red' : 'text-emerald'}`}>{batterySlider}%</span>
                   </label>
                   <input
                     type="range"
@@ -392,19 +356,22 @@ export const SystemSettingsView: React.FC = () => {
                     step="1"
                     value={batterySlider}
                     onChange={(e) => setBatterySlider(parseInt(e.target.value, 10))}
-                    style={{ width: '100%', height: '6px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', appearance: 'none' }}
+                    className="w-full h-1.5 bg-surface rounded-full appearance-none outline-none focus:outline-none"
+                    style={{ 
+                      background: `linear-gradient(to right, var(--accent-${batterySlider < 20 ? 'red' : 'emerald'}) ${batterySlider}%, var(--bg-surface) ${batterySlider}%)` 
+                    }}
                   />
-                  <div className="flex justify-between" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                  <div className="flex justify-between text-[10px] text-muted font-mono">
                     <span>Dead (0%)</span>
                     <span>Full (100%)</span>
                   </div>
                 </div>
 
                 {/* Signal Strength (RSSI) */}
-                <div className="space-y-2">
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    <span>Link Signal Strength (RSSI)</span>
-                    <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{rssiSlider} dBm</span>
+                <div className="space-y-2 p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <label className="flex justify-between text-xs font-bold text-main uppercase tracking-widest">
+                    <span>Link Signal (RSSI)</span>
+                    <span className="text-blue font-mono font-bold">{rssiSlider} dBm</span>
                   </label>
                   <input
                     type="range"
@@ -413,19 +380,22 @@ export const SystemSettingsView: React.FC = () => {
                     step="1"
                     value={rssiSlider}
                     onChange={(e) => setRssiSlider(parseInt(e.target.value, 10))}
-                    style={{ width: '100%', height: '6px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', appearance: 'none' }}
+                    className="w-full h-1.5 bg-surface rounded-full appearance-none outline-none focus:outline-none"
+                    style={{ 
+                      background: `linear-gradient(to right, var(--accent-blue) ${((rssiSlider + 100) / 70) * 100}%, var(--bg-surface) ${((rssiSlider + 100) / 70) * 100}%)` 
+                    }}
                   />
-                  <div className="flex justify-between" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                  <div className="flex justify-between text-[10px] text-muted font-mono">
                     <span>Weak (-100)</span>
                     <span>Excellent (-30)</span>
                   </div>
                 </div>
 
                 {/* Packet Loss */}
-                <div className="space-y-2">
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                <div className="space-y-2 p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <label className="flex justify-between text-xs font-bold text-main uppercase tracking-widest">
                     <span>Link Packet Loss</span>
-                    <span style={{ color: lossSlider > 10 ? 'var(--accent-amber)' : 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>{lossSlider}%</span>
+                    <span className={`font-mono font-bold ${lossSlider > 10 ? 'text-amber' : 'text-emerald'}`}>{lossSlider}%</span>
                   </label>
                   <input
                     type="range"
@@ -434,19 +404,22 @@ export const SystemSettingsView: React.FC = () => {
                     step="1"
                     value={lossSlider}
                     onChange={(e) => setLossSlider(parseInt(e.target.value, 10))}
-                    style={{ width: '100%', height: '6px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', appearance: 'none' }}
+                    className="w-full h-1.5 bg-surface rounded-full appearance-none outline-none focus:outline-none"
+                    style={{ 
+                      background: `linear-gradient(to right, var(--accent-${lossSlider > 10 ? 'amber' : 'emerald'}) ${lossSlider}%, var(--bg-surface) ${lossSlider}%)` 
+                    }}
                   />
-                  <div className="flex justify-between" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                  <div className="flex justify-between text-[10px] text-muted font-mono">
                     <span>Perfect (0%)</span>
                     <span>Total Drop (100%)</span>
                   </div>
                 </div>
 
                 {/* Latency */}
-                <div className="space-y-2">
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    <span>Processing & Queue Latency</span>
-                    <span style={{ color: latencySlider > 100 ? 'var(--accent-amber)' : 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>{latencySlider} ms</span>
+                <div className="space-y-2 p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <label className="flex justify-between text-xs font-bold text-main uppercase tracking-widest">
+                    <span>Processing Latency</span>
+                    <span className={`font-mono font-bold ${latencySlider > 100 ? 'text-amber' : 'text-main'}`}>{latencySlider} ms</span>
                   </label>
                   <input
                     type="range"
@@ -455,108 +428,111 @@ export const SystemSettingsView: React.FC = () => {
                     step="5"
                     value={latencySlider}
                     onChange={(e) => setLatencySlider(parseInt(e.target.value, 10))}
-                    style={{ width: '100%', height: '6px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', appearance: 'none' }}
+                    className="w-full h-1.5 bg-surface rounded-full appearance-none outline-none focus:outline-none"
+                    style={{ 
+                      background: `linear-gradient(to right, var(--border-strong) ${((latencySlider - 5) / 495) * 100}%, var(--bg-surface) ${((latencySlider - 5) / 495) * 100}%)` 
+                    }}
                   />
-                  <div className="flex justify-between" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                  <div className="flex justify-between text-[10px] text-muted font-mono">
                     <span>Fast (5ms)</span>
                     <span>Congested (500ms)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-auto pt-4 flex gap-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+              <div className="mt-auto pt-4 flex flex-wrap gap-3 border-t border-subtle">
                 <button onClick={handleApplySliders} className="btn btn-primary">
-                  Apply Node Parameters
+                  <Sliders size={14} /> Apply Node Parameters
                 </button>
-                <button onClick={handleRestoreNode} className="btn btn-sm">
-                  <Heart size={14} style={{ color: 'var(--accent-emerald)' }} /> Restore Health
+                <button onClick={handleRestoreNode} className="btn bg-emerald/10 text-emerald hover:bg-emerald/20 border-emerald/20">
+                  <Heart size={14} /> Restore Health
                 </button>
-                <button onClick={handleTriggerHeartbeat} className="btn btn-sm">
-                  <Wifi size={14} style={{ color: 'var(--accent-primary)' }} /> Send Ping
+                <button onClick={handleTriggerHeartbeat} className="btn border-subtle text-main bg-surface hover:bg-surface-elevated">
+                  <Wifi size={14} className="text-primary" /> Force Ping
                 </button>
               </div>
             </div>
           ) : (
-            <div className="card h-full flex flex-col items-center justify-center p-12 text-center">
-              <Cpu size={48} style={{ color: 'var(--border-strong)', marginBottom: '1rem' }} />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No Node Selected</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                Select a mesh node from the list to view and edit its simulation parameters.
+            <div className="widget h-full flex flex-col items-center justify-center p-12 text-center border-dashed">
+              <Cpu size={48} className="text-dim mb-4 opacity-50" />
+              <h3 className="text-lg font-bold text-main">No Node Selected</h3>
+              <p className="text-sm text-muted mt-1 max-w-sm">
+                Select a mesh node from the list to view and edit its simulation parameters and routing topology.
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Deploy Node Modal */}
-      {showAddNodeModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddNodeModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-              <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Plus size={18} style={{ color: 'var(--accent-primary)' }} /> Deploy Simulated Node
+      {/* Deploy Node Drawer */}
+      {showDrawer && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setShowDrawer(false)}></div>
+          <div className="drawer-panel">
+            <div className="drawer-header">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Plus size={16} className="text-primary" /> Deploy Simulated Node
               </h3>
-              <button onClick={() => setShowAddNodeModal(false)} className="btn-icon">
-                <Trash2 size={18} />
-              </button>
+              <button onClick={() => setShowDrawer(false)} className="btn-icon"><X size={16} /></button>
             </div>
 
-            <form onSubmit={handleCreateNode} className="space-y-4">
-              <div>
-                <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block' }}>Node Identifier (Unique)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. EM-10"
-                  className="form-input"
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}
-                  value={newNodeId}
-                  onChange={(e) => setNewNodeId(e.target.value)}
-                />
+            <div className="drawer-content space-y-4">
+              <div className="bg-surface-elevated p-3 border border-subtle rounded-sm text-sm text-muted mb-4">
+                Deploying a new node will force a network re-convergence as routing paths are discovered.
               </div>
 
-              <div>
-                <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block' }}>Initial Parent Node</label>
-                <select
-                  required
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem' }}
-                  value={newNodeParent}
-                  onChange={(e) => setNewNodeParent(e.target.value)}
-                >
-                  {nodes.map((n) => (
-                    <option key={n.node_id} value={n.node_id}>
-                      {n.node_id} (Layer {n.layer})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <form id="node-form" onSubmit={handleCreateNode} className="space-y-4">
+                <div className="form-group">
+                  <label className="form-label">Node Identifier (Unique)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. EM-10"
+                    className="form-input font-mono"
+                    value={newNodeId}
+                    onChange={(e) => setNewNodeId(e.target.value)}
+                  />
+                </div>
 
-              <div>
-                <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block' }}>Starting Battery (%)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  required
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem' }}
-                  value={newNodeBattery}
-                  onChange={(e) => setNewNodeBattery(parseInt(e.target.value, 10))}
-                />
-              </div>
+                <div className="form-group">
+                  <label className="form-label">Initial Parent Route</label>
+                  <select
+                    required
+                    className="form-select font-mono text-sm"
+                    value={newNodeParent}
+                    onChange={(e) => setNewNodeParent(e.target.value)}
+                  >
+                    {nodes.map((n) => (
+                      <option key={n.node_id} value={n.node_id}>
+                        {n.node_id} (Layer {n.layer})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="flex justify-end gap-2 mt-2 pt-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                <button type="button" onClick={() => setShowAddNodeModal(false)} className="btn">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Deploy to Mesh
-                </button>
-              </div>
-            </form>
+                <div className="form-group">
+                  <label className="form-label">Starting Battery (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    required
+                    className="form-input font-mono"
+                    value={newNodeBattery}
+                    onChange={(e) => setNewNodeBattery(parseInt(e.target.value, 10))}
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div className="drawer-footer">
+              <button type="button" onClick={() => setShowDrawer(false)} className="btn">Cancel</button>
+              <button type="submit" form="node-form" className="btn btn-primary">
+                Deploy to Mesh
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

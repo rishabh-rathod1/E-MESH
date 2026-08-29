@@ -24,80 +24,62 @@ export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
     <header className="app-header">
       <div className="flex items-center gap-3">
         <button className="mobile-menu-btn" onClick={onMobileMenuToggle} title="Toggle navigation">
-          <Menu size={20} />
+          <Menu size={18} />
         </button>
 
         <div
           className="flex items-center gap-2"
           style={{
-            padding: '0.25rem 0.625rem',
-            background: 'rgba(136, 179, 148, 0.1)',
-            border: '1px solid rgba(136, 179, 148, 0.25)',
+            padding: '4px 8px',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-full)',
           }}
         >
           <span className="pulse-dot online" />
-          <span
-            style={{
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              color: 'var(--accent-emerald)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald">
             Gateway Online
           </span>
-          <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)' }}>| Sim-Mesh</span>
+          <span className="text-xs text-dim">| Sim-Mesh</span>
         </div>
 
-        <div
-          className="hidden md:flex items-center gap-2"
-          style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}
-        >
-          <Radio size={13} style={{ color: 'var(--accent-primary)' }} />
+        <div className="hidden md:flex items-center gap-2 text-xs font-mono text-muted">
+          <Radio size={12} className="text-blue" />
           <span>FREQ: 2.4 GHz (ESP-NOW)</span>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <div
-          className="hidden sm:block"
-          style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}
-        >
-          <span style={{ color: 'var(--text-dim)' }}>SYS TIME:</span> {timeStr}
+        <div className="hidden sm:block text-xs font-mono text-muted">
+          <span className="text-dim">SYS TIME:</span> {timeStr}
         </div>
 
-        <div
-          className="flex items-center gap-3"
-          style={{ paddingLeft: '0.75rem', borderLeft: '1px solid var(--border-subtle)' }}
-        >
+        <div className="flex items-center gap-3" style={{ paddingLeft: '12px', borderLeft: '1px solid var(--border-subtle)' }}>
           <div className="flex items-center gap-2">
             <div
+              className="flex items-center justify-center shrink-0"
               style={{
-                padding: '0.3rem',
+                width: '28px',
+                height: '28px',
                 background: 'var(--bg-surface-elevated)',
                 borderRadius: '50%',
                 border: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
               }}
             >
-              <UserIcon size={14} style={{ color: 'var(--accent-primary)' }} />
+              <UserIcon size={14} className="text-blue" />
             </div>
             <div>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1, color: 'var(--text-main)' }}>
+              <div className="text-sm font-semibold leading-none text-main">
                 {user?.full_name || user?.username}
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.125rem' }}>
+              <div className="text-xs text-dim mt-1 leading-none">
                 {user?.role}
               </div>
             </div>
           </div>
 
           <button onClick={logout} className="btn-icon" title="Sign out of NOC">
-            <LogOut size={16} />
+            <LogOut size={14} />
           </button>
         </div>
       </div>

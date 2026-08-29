@@ -9,6 +9,9 @@ import {
   User,
   Users,
   X,
+  Search,
+  MoreVertical,
+  ChevronRight
 } from 'lucide-react';
 import { api } from '../api/client';
 import { Responder, ResponderStatus, User as UserType } from '../api/types';
@@ -17,8 +20,11 @@ export const RespondersView: React.FC = () => {
   const [responders, setResponders] = useState<Responder[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Filter
+  const [search, setSearch] = useState('');
 
   // Form
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -55,7 +61,7 @@ export const RespondersView: React.FC = () => {
         team,
         zone,
       });
-      setShowAddModal(false);
+      setShowDrawer(false);
       setSelectedUserId('');
       await loadData();
     } catch (err: any) {
@@ -84,160 +90,181 @@ export const RespondersView: React.FC = () => {
     }
   };
 
+  const filteredResponders = responders.filter(r => 
+    (r.user?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.user?.username || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.team || '').toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Responder Roster</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+          <h2 className="text-xl font-bold text-main leading-tight">Responder Roster</h2>
+          <p className="text-sm text-muted mt-1">
             Dispatch teams, emergency roles, and operational readiness
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowAddModal(true)} className="btn btn-sm btn-primary">
-            <Plus size={14} /> Enlist Responder
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input 
+              type="text" 
+              placeholder="Filter roster..." 
+              className="form-input pl-8" 
+              style={{ width: '200px' }} 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <button onClick={loadData} disabled={loading} className="btn">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={loadData} disabled={loading} className="btn btn-sm">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+          <button onClick={() => setShowDrawer(true)} className="btn btn-primary">
+            <Plus size={14} /> Enlist
           </button>
         </div>
       </div>
 
-      {/* Responders Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {responders.length === 0 ? (
-          <div className="col-span-12 card text-center py-12 text-muted">
-            No responders currently enlisted. Click "Enlist Responder" to assign users to emergency teams.
-          </div>
-        ) : (
-          responders.map((resp) => {
-            const statusColor =
-              resp.status === 'AVAILABLE'
-                ? 'badge-emerald'
-                : resp.status === 'ASSIGNED' || resp.status === 'DEPLOYED'
-                ? 'badge-blue'
-                : resp.status === 'RESPONDING' || resp.status === 'BUSY'
-                ? 'badge-amber'
-                : 'badge-gray';
-
-            return (
-              <div key={resp.id} className="card flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div style={{ padding: '0.5rem', background: 'rgba(113, 137, 166, 0.1)', borderRadius: '8px' }}>
-                        <Shield size={18} style={{ color: 'var(--accent-blue)' }} />
-                      </div>
-                      <div>
-                        <div className="font-bold text-base">{resp.user?.full_name || resp.user?.username || 'Unknown'}</div>
-                        <div className="text-xs text-muted">@{resp.user?.username || resp.user_id.slice(0, 8)}</div>
-                      </div>
-                    </div>
-                    <span className={`badge ${statusColor}`}>{resp.status}</span>
+      {/* Responders Table */}
+      <div className="table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Personnel Name</th>
+              <th>Username</th>
+              <th>Assigned Team</th>
+              <th>Operational Zone</th>
+              <th className="actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredResponders.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center p-8 text-muted">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Shield size={24} className="opacity-30" />
+                    <span className="text-sm font-medium">No personnel found.</span>
                   </div>
+                </td>
+              </tr>
+            ) : (
+              filteredResponders.map((resp) => {
+                const isAvailable = resp.status === 'AVAILABLE';
+                const isBusy = resp.status === 'ASSIGNED' || resp.status === 'DEPLOYED' || resp.status === 'RESPONDING';
+                const isUnavailable = resp.status === 'UNAVAILABLE' || resp.status === 'OFFLINE' || resp.status === 'RESTING';
+                
+                const dotColor = isAvailable ? 'emerald' : isBusy ? 'blue' : 'gray';
 
-                  <div className="mt-4 space-y-2 text-xs">
-                    <div className="flex items-center gap-1.5 text-main">
-                      <Users size={14} style={{ color: 'var(--accent-primary)' }} />
-                      <span><strong>Team:</strong> {resp.team || 'Unassigned'}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-main">
-                      <MapPin size={14} style={{ color: 'var(--accent-amber)' }} />
-                      <span><strong>Zone:</strong> {resp.zone || 'General Mesh Area'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                  <select
-                    className="form-select text-xs"
-                    style={{ width: 'auto', padding: '0.25rem 0.5rem' }}
-                    value={resp.status}
-                    onChange={(e) => handleStatusChange(resp.id, e.target.value as ResponderStatus)}
-                  >
-                    <option value="AVAILABLE">AVAILABLE</option>
-                    <option value="ASSIGNED">ASSIGNED</option>
-                    <option value="RESPONDING">RESPONDING</option>
-                    <option value="UNAVAILABLE">UNAVAILABLE</option>
-                    <option value="DEPLOYED">DEPLOYED</option>
-                    <option value="BUSY">BUSY</option>
-                    <option value="RESTING">RESTING</option>
-                    <option value="OFFLINE">OFFLINE</option>
-                  </select>
-
-                  <button onClick={() => handleDeleteResponder(resp.id)} className="btn-icon" style={{ color: 'var(--accent-red)' }} title="Remove Responder">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
+                return (
+                  <tr key={resp.id} className="hover:bg-surface-elevated transition-colors">
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <select
+                          className={`form-select text-xs font-semibold py-1 px-2 border-${dotColor} text-${dotColor} bg-transparent`}
+                          style={{ width: '130px' }}
+                          value={resp.status}
+                          onChange={(e) => handleStatusChange(resp.id, e.target.value as ResponderStatus)}
+                        >
+                          <option value="AVAILABLE">AVAILABLE</option>
+                          <option value="ASSIGNED">ASSIGNED</option>
+                          <option value="RESPONDING">RESPONDING</option>
+                          <option value="DEPLOYED">DEPLOYED</option>
+                          <option value="BUSY">BUSY</option>
+                          <option value="RESTING">RESTING</option>
+                          <option value="UNAVAILABLE">UNAVAILABLE</option>
+                          <option value="OFFLINE">OFFLINE</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td className="font-bold text-main">{resp.user?.full_name || resp.user?.username || 'Unknown'}</td>
+                    <td className="text-muted text-xs font-mono">@{resp.user?.username || resp.user_id.slice(0, 8)}</td>
+                    <td className="font-semibold text-main">{resp.team || 'Unassigned'}</td>
+                    <td className="text-muted">{resp.zone || 'General Area'}</td>
+                    <td className="actions">
+                      <button onClick={() => handleDeleteResponder(resp.id)} className="btn-icon hover:text-red hover:bg-red/5" title="Remove Responder">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center pb-3 mb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <Shield size={18} style={{ color: 'var(--accent-primary)' }} /> Enlist Responder
+      {/* Add Drawer */}
+      {showDrawer && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setShowDrawer(false)}></div>
+          <div className="drawer-panel">
+            <div className="drawer-header">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Shield size={16} className="text-primary" /> Enlist Responder
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="btn-icon"><X size={18} /></button>
+              <button onClick={() => setShowDrawer(false)} className="btn-icon"><X size={16} /></button>
             </div>
 
-            <form onSubmit={handleCreateResponder}>
-              <div className="form-group">
-                <label className="form-label">Select User Account</label>
-                <select
-                  required
-                  className="form-select text-xs"
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                >
-                  <option value="">Choose a registered user...</option>
-                  {availableUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.full_name} (@{u.username}) — Role: {u.role}
-                    </option>
-                  ))}
-                </select>
+            <div className="drawer-content">
+              <div className="bg-surface-elevated p-3 border border-subtle rounded-sm text-sm text-muted mb-4">
+                Enlisting a user allows them to be dispatched to incidents and tracked via the NOC dashboard.
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Team Assignment</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Rapid Medical Unit, Hazmat, Search & Rescue"
-                  className="form-input text-xs"
-                  value={team}
-                  onChange={(e) => setTeam(e.target.value)}
-                />
-              </div>
+              <form id="responder-form" onSubmit={handleCreateResponder} className="space-y-4">
+                <div className="form-group">
+                  <label className="form-label">Select Registered Account</label>
+                  <select
+                    required
+                    className="form-select"
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                  >
+                    <option value="">Choose a registered user...</option>
+                    {availableUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} (@{u.username}) — Role: {u.role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Operational Zone</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Zone Alpha - North Hospital Perimeter"
-                  className="form-input text-xs"
-                  value={zone}
-                  onChange={(e) => setZone(e.target.value)}
-                />
-              </div>
+                <div className="form-group">
+                  <label className="form-label">Team Assignment</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Rapid Medical Unit, Hazmat"
+                    className="form-input"
+                    value={team}
+                    onChange={(e) => setTeam(e.target.value)}
+                  />
+                </div>
 
-              <div className="flex justify-end gap-2 mt-4 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-sm">Cancel</button>
-                <button type="submit" disabled={actionLoading || !selectedUserId} className="btn btn-sm btn-primary">
-                  {actionLoading ? 'Enlisting...' : 'Enlist Responder'}
-                </button>
-              </div>
-            </form>
+                <div className="form-group">
+                  <label className="form-label">Operational Zone</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Zone Alpha - Perimeter"
+                    className="form-input"
+                    value={zone}
+                    onChange={(e) => setZone(e.target.value)}
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div className="drawer-footer">
+              <button type="button" onClick={() => setShowDrawer(false)} className="btn">Cancel</button>
+              <button type="submit" form="responder-form" disabled={actionLoading || !selectedUserId} className="btn btn-primary">
+                {actionLoading ? 'Enlisting...' : 'Enlist Personnel'}
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

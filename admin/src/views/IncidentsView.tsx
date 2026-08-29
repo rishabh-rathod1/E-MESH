@@ -9,6 +9,10 @@ import {
   Shield,
   User,
   X,
+  Activity,
+  MoreVertical,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { api } from '../api/client';
 import { Incident, Responder } from '../api/types';
@@ -28,6 +32,7 @@ export const IncidentsView: React.FC = () => {
 
   // Selected incident modal
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [assignResponderId, setAssignResponderId] = useState('');
@@ -135,56 +140,58 @@ export const IncidentsView: React.FC = () => {
     }
   };
 
+  const openDrawer = (inc: Incident) => {
+    setSelectedIncident(inc);
+    setShowDrawer(true);
+  };
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Incidents & Triage</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-            Manage, assign and resolve emergency field reports ({total} total)
+          <h2 className="text-xl font-bold text-main leading-tight">Incidents & Triage</h2>
+          <p className="text-sm text-muted mt-1">
+            Manage, assign and resolve field reports ({total} total)
           </p>
         </div>
-        <button onClick={loadData} disabled={loading} className="btn btn-sm">
+        <button onClick={loadData} disabled={loading} className="btn">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="card mb-6">
+      <div className="widget bg-surface-elevated border-subtle p-3">
         <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-1 items-center gap-2" style={{ minWidth: '240px' }}>
+          <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative w-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search descriptions, locations, categories..."
-                className="form-input"
-                style={{ paddingLeft: '2rem' }}
+                className="form-input pl-8"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
             </div>
-            <button type="submit" className="btn btn-sm btn-primary">Search</button>
+            <button type="submit" className="btn btn-primary">Search</button>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1">
-              <Filter size={14} style={{ color: 'var(--text-muted)' }} />
-              <select className="form-select" style={{ width: 'auto', fontSize: '0.75rem' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <div className="flex items-center gap-2">
+              <Filter size={14} className="text-muted" />
+              <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                 <option value="">All Statuses</option>
                 <option value="SUBMITTED">Submitted</option>
                 <option value="ACKNOWLEDGED">Acknowledged</option>
                 <option value="ASSIGNED">Assigned</option>
                 <option value="IN_PROGRESS">In Progress</option>
-                <option value="RESPONDING">Responding</option>
                 <option value="RESOLVED">Resolved</option>
                 <option value="CLOSED">Closed</option>
-                <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
 
-            <div className="flex items-center gap-1">
-              <select className="form-select" style={{ width: 'auto', fontSize: '0.75rem' }} value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+            <div className="flex items-center gap-2">
+              <select className="form-select" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
                 <option value="">All Priorities</option>
                 <option value="CRITICAL">Critical</option>
                 <option value="HIGH">High</option>
@@ -208,69 +215,53 @@ export const IncidentsView: React.FC = () => {
               <th>Assigned Responder</th>
               <th>Status</th>
               <th>Reported</th>
-              <th>Action</th>
+              <th className="actions"></th>
             </tr>
           </thead>
           <tbody>
             {incidents.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)' }}>
-                  No incidents matching current criteria.
+                <td colSpan={8} className="text-center p-8 text-muted">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <CheckCircle size={24} className="opacity-30" />
+                    <span className="text-sm font-medium">No incidents match the current criteria.</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               incidents.map((inc) => {
                 const priorityColor =
-                  inc.priority === 'CRITICAL'
-                    ? 'badge-red'
-                    : inc.priority === 'HIGH'
-                    ? 'badge-amber'
-                    : inc.priority === 'MEDIUM'
-                    ? 'badge-blue'
-                    : 'badge-gray';
+                  inc.priority === 'CRITICAL' ? 'red' : inc.priority === 'HIGH' ? 'amber' : 'blue';
 
                 const statusColor =
-                  inc.status === 'SUBMITTED'
-                    ? 'badge-amber'
-                    : inc.status === 'ACKNOWLEDGED'
-                    ? 'badge-purple'
-                    : inc.status === 'ASSIGNED' || inc.status === 'IN_PROGRESS' || inc.status === 'RESPONDING'
-                    ? 'badge-blue'
-                    : inc.status === 'RESOLVED'
-                    ? 'badge-emerald'
-                    : 'badge-gray';
+                  inc.status === 'SUBMITTED' ? 'amber' : inc.status === 'RESOLVED' ? 'emerald' : inc.status === 'CLOSED' ? 'gray' : 'blue';
 
                 return (
-                  <tr key={inc.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedIncident(inc)}>
-                    <td><span className={`badge ${priorityColor}`}>{inc.priority}</span></td>
-                    <td style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{inc.category.replace(/_/g, ' ')}</td>
-                    <td style={{ maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
-                      {inc.description}
+                  <tr key={inc.id} onClick={() => openDrawer(inc)} className="hover:bg-surface-elevated cursor-pointer transition-colors">
+                    <td>
+                      <span className={`badge bg-${priorityColor} text-white`}>{inc.priority}</span>
                     </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{inc.people_affected || 0}</td>
-                    <td style={{ fontSize: '0.75rem' }}>
-                      {inc.assigned_responder ? (
-                        <span className="flex items-center gap-1" style={{ color: 'var(--accent-blue)' }}>
-                          <Shield size={12} /> {inc.assigned_responder.user?.full_name || inc.assigned_responder.team || 'Assigned'}
-                        </span>
+                    <td className="font-semibold">{inc.category.replace(/_/g, ' ')}</td>
+                    <td className="text-muted truncate max-w-xs">{inc.description}</td>
+                    <td className="font-mono text-xs text-main">{inc.people_affected || 0}</td>
+                    <td>
+                      {inc.assigned_responder_id ? (
+                        <div className="flex items-center gap-1 font-semibold text-blue">
+                          <Shield size={12} />
+                          {responders.find((r) => r.id === inc.assigned_responder_id)?.name || inc.assigned_responder_id}
+                        </div>
                       ) : (
-                        <span style={{ color: 'var(--text-dim)' }}>Unassigned</span>
+                        <span className="text-muted text-xs italic">Unassigned</span>
                       )}
                     </td>
-                    <td><span className={`badge ${statusColor}`}>{inc.status.replace(/_/g, ' ')}</span></td>
-                    <td style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                      {new Date(inc.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
                     <td>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedIncident(inc);
-                        }}
-                        className="btn btn-sm"
-                      >
-                        Triage
-                      </button>
+                      <span className={`badge badge-outline text-${statusColor} border-${statusColor}`}>{inc.status.replace(/_/g, ' ')}</span>
+                    </td>
+                    <td className="font-mono text-xs text-muted">
+                      {new Date(inc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="actions">
+                      <ChevronRight size={14} className="text-muted" />
                     </td>
                   </tr>
                 );
@@ -280,143 +271,141 @@ export const IncidentsView: React.FC = () => {
         </table>
       </div>
 
-      {/* Incident Detail & Triage Modal */}
-      {selectedIncident && (
-        <div className="modal-backdrop" onClick={() => setSelectedIncident(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between" style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`badge ${selectedIncident.priority === 'CRITICAL' ? 'badge-red' : selectedIncident.priority === 'HIGH' ? 'badge-amber' : 'badge-blue'}`}>
-                    {selectedIncident.priority}
-                  </span>
-                  <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{selectedIncident.id}</span>
-                </div>
-                <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, marginTop: '0.25rem' }}>{selectedIncident.category.replace(/_/g, ' ')}</h3>
-              </div>
-              <button onClick={() => setSelectedIncident(null)} className="btn-icon">
-                <X size={18} />
-              </button>
+      {/* Side Drawer for Details */}
+      {showDrawer && selectedIncident && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setShowDrawer(false)}></div>
+          <div className="drawer-panel" style={{ maxWidth: '480px' }}>
+            <div className="drawer-header">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <AlertTriangle size={16} className={`text-${selectedIncident.priority === 'CRITICAL' ? 'red' : 'amber'}`} />
+                Incident Details
+              </h3>
+              <button onClick={() => setShowDrawer(false)} className="btn-icon"><X size={16} /></button>
             </div>
 
-            <div className="space-y-4" style={{ fontSize: '0.8125rem' }}>
+            <div className="drawer-content space-y-6">
+              {/* Header block */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-xl font-bold text-main leading-tight mb-1">{selectedIncident.title}</h4>
+                  <div className="font-mono text-xs text-blue">{selectedIncident.incident_id}</div>
+                </div>
+                <span className={`badge ${selectedIncident.status === 'RESOLVED' ? 'bg-emerald text-white' : 'badge-outline text-main'}`}>
+                  {selectedIncident.status}
+                </span>
+              </div>
+
+              {/* Attributes Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <div className="text-xs font-semibold text-muted mb-1">Priority</div>
+                  <select
+                    className="form-select text-xs font-semibold p-1"
+                    value={selectedIncident.priority}
+                    onChange={(e) => handlePriorityChange(selectedIncident.id, e.target.value)}
+                    disabled={actionLoading}
+                  >
+                    <option value="CRITICAL">CRITICAL</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="LOW">LOW</option>
+                  </select>
+                </div>
+                <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <div className="text-xs font-semibold text-muted mb-1">Category</div>
+                  <div className="text-sm font-semibold text-main">{selectedIncident.category.replace(/_/g, ' ')}</div>
+                </div>
+                <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <div className="text-xs font-semibold text-muted mb-1">Reported At</div>
+                  <div className="text-xs font-mono text-main">{new Date(selectedIncident.created_at).toLocaleString()}</div>
+                </div>
+                <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                  <div className="text-xs font-semibold text-muted mb-1">People Affected</div>
+                  <div className="text-sm font-semibold text-main">{selectedIncident.people_affected || 0}</div>
+                </div>
+              </div>
+
+              {/* Description */}
               <div>
-                <label className="form-label">Description</label>
-                <div style={{ padding: '0.75rem', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <h5 className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Description</h5>
+                <div className="p-3 bg-surface-elevated border border-subtle rounded-sm text-sm text-main">
                   {selectedIncident.description}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3" style={{ fontSize: '0.75rem' }}>
-                <div style={{ padding: '0.5rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }}>
-                  <span style={{ color: 'var(--text-dim)' }}>People Affected:</span>
-                  <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginTop: '0.125rem' }}>{selectedIncident.people_affected}</div>
-                </div>
-                <div style={{ padding: '0.5rem', background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }}>
-                  <span style={{ color: 'var(--text-dim)' }}>Current Status:</span>
-                  <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginTop: '0.125rem', color: 'var(--accent-blue)' }}>{selectedIncident.status}</div>
-                </div>
-              </div>
-
-              {/* Priority Override */}
-              <div className="form-group">
-                <label className="form-label">Adjust Priority</label>
-                <div className="flex gap-2">
-                  {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const).map((prio) => (
-                    <button
-                      key={prio}
-                      type="button"
-                      disabled={actionLoading || selectedIncident.priority === prio}
-                      onClick={() => handlePriorityChange(selectedIncident.id, prio)}
-                      className={`btn btn-sm flex-1 ${selectedIncident.priority === prio ? 'btn-primary' : ''}`}
-                    >
-                      {prio}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status Override */}
-              <div className="form-group">
-                <label className="form-label">Status Transition</label>
-                <div className="flex flex-wrap gap-1">
-                  {(['SUBMITTED', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS', 'RESPONDING', 'RESOLVED', 'CLOSED', 'CANCELLED'] as const).map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      disabled={actionLoading || selectedIncident.status === st}
-                      onClick={() => handleStatusChange(selectedIncident.id, st)}
-                      className={`btn btn-sm ${selectedIncident.status === st ? 'btn-primary' : ''}`}
-                      style={{ fontSize: '0.675rem', padding: '0.2rem 0.4rem' }}
-                    >
-                      {st.replace(/_/g, ' ')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assign Responder */}
-              <div className="form-group">
-                <label className="form-label">Assign Responder</label>
-                <div className="flex gap-2">
+              {/* Assignment */}
+              <div>
+                <h5 className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Assignment</h5>
+                <div className="flex items-center gap-2">
                   <select
-                    className="form-select"
-                    style={{ fontSize: '0.75rem' }}
-                    value={assignResponderId}
+                    className="form-select flex-1"
+                    value={assignResponderId || selectedIncident.assigned_responder_id || ''}
                     onChange={(e) => setAssignResponderId(e.target.value)}
+                    disabled={actionLoading}
                   >
-                    <option value="">Select available responder...</option>
+                    <option value="">-- Unassigned --</option>
                     {responders.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.user?.full_name || r.user?.username || r.id} — {r.team || 'General Team'} ({r.status})
+                        {r.name} ({r.status})
                       </option>
                     ))}
                   </select>
                   <button
-                    disabled={!assignResponderId || actionLoading}
                     onClick={() => handleAssignResponder(selectedIncident.id)}
-                    className="btn btn-sm btn-primary"
+                    disabled={actionLoading || !assignResponderId || assignResponderId === selectedIncident.assigned_responder_id}
+                    className="btn btn-primary"
                   >
                     Assign
                   </button>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2" style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-                {selectedIncident.status === 'SUBMITTED' && (
-                  <button
-                    disabled={actionLoading}
-                    onClick={() => handleAcknowledge(selectedIncident.id)}
-                    className="btn btn-primary w-full"
-                  >
-                    <Clock size={15} /> Acknowledge Incident
-                  </button>
-                )}
-
-                {selectedIncident.status !== 'RESOLVED' && selectedIncident.status !== 'CANCELLED' && (
-                  <div>
-                    <input
-                      type="text"
-                      className="form-input mb-2"
-                      style={{ fontSize: '0.75rem' }}
-                      placeholder="Optional resolution notes..."
-                      value={resolutionNotes}
-                      onChange={(e) => setResolutionNotes(e.target.value)}
-                    />
+              {/* Resolution Block */}
+              {selectedIncident.status === 'RESOLVED' ? (
+                <div>
+                  <h5 className="text-xs font-bold uppercase tracking-widest text-emerald mb-2 flex items-center gap-1">
+                    <CheckCircle size={12}/> Resolution Details
+                  </h5>
+                  <div className="p-3 bg-emerald/10 border border-emerald/20 rounded-sm text-sm text-main">
+                    {selectedIncident.resolution_notes || 'No notes provided.'}
+                    <div className="text-xs text-muted mt-2 font-mono">
+                      Resolved: {selectedIncident.resolved_at ? new Date(selectedIncident.resolved_at).toLocaleString() : 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-t border-subtle pt-6">
+                  <h5 className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Resolve Incident</h5>
+                  <textarea
+                    placeholder="Enter resolution notes before closing..."
+                    className="form-textarea mb-3"
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    {selectedIncident.status === 'SUBMITTED' && (
+                      <button
+                        onClick={() => handleAcknowledge(selectedIncident.id)}
+                        disabled={actionLoading}
+                        className="btn"
+                      >
+                        Acknowledge
+                      </button>
+                    )}
                     <button
-                      disabled={actionLoading}
                       onClick={() => handleResolve(selectedIncident.id)}
-                      className="btn btn-success w-full"
+                      disabled={actionLoading}
+                      className="btn btn-success flex-1"
                     >
-                      <CheckCircle size={15} /> Mark as Resolved
+                      Mark as Resolved
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

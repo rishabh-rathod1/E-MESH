@@ -23,8 +23,7 @@ export const PeopleView: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('');
 
   // Modals
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editUser, setEditUser] = useState<User | null>(null);
+  const [showDrawer, setShowDrawer] = useState(false);
 
   // Form states
   const [username, setUsername] = useState('');
@@ -60,6 +59,14 @@ export const PeopleView: React.FC = () => {
     loadUsers();
   };
 
+  const resetForm = () => {
+    setUsername('');
+    setFullName('');
+    setEmail('');
+    setPassword('');
+    setRole('CIVILIAN');
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
@@ -71,11 +78,8 @@ export const PeopleView: React.FC = () => {
         password,
         role,
       });
-      setShowAddModal(false);
-      setUsername('');
-      setFullName('');
-      setEmail('');
-      setPassword('');
+      setShowDrawer(false);
+      resetForm();
       await loadUsers();
     } catch (err: any) {
       alert(err.message);
@@ -107,48 +111,47 @@ export const PeopleView: React.FC = () => {
   };
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>People Directory</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+          <h2 className="text-xl font-bold text-main leading-tight">People Directory</h2>
+          <p className="text-sm text-muted mt-1">
             User access control, roles, and identity management ({total} registered)
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowAddModal(true)} className="btn btn-sm btn-primary">
-            <UserPlus size={14} /> Add User
-          </button>
-          <button onClick={loadUsers} disabled={loading} className="btn btn-sm">
+          <button onClick={loadUsers} disabled={loading} className="btn">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button onClick={() => { resetForm(); setShowDrawer(true); }} className="btn btn-primary">
+            <UserPlus size={14} /> Add User
           </button>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="card mb-6">
+      <div className="widget bg-surface-elevated p-3 border-subtle">
         <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-1 items-center gap-2" style={{ minWidth: '240px' }}>
+          <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative w-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search by full name, username, email..."
-                className="form-input"
-                style={{ paddingLeft: '2rem' }}
+                className="form-input pl-8"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Search size={14} className="text-dim absolute" style={{ left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
-            <button type="submit" className="btn btn-sm btn-primary">Search</button>
+            <button type="submit" className="btn btn-primary">Search</button>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs text-muted font-semibold">Role Filter:</label>
+            <span className="text-xs text-muted font-bold tracking-widest uppercase">Role Filter</span>
             <select
-              className="form-select text-xs"
-              style={{ width: 'auto' }}
+              className="form-select text-xs py-1.5"
+              style={{ width: '140px' }}
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
             >
@@ -173,45 +176,37 @@ export const PeopleView: React.FC = () => {
               <th>Username</th>
               <th>Role</th>
               <th>Registered At</th>
-              <th>Change Role</th>
-              <th>Actions</th>
+              <th className="actions">Access Control</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-muted">
-                  No users found matching query.
+                <td colSpan={6} className="text-center py-12 text-muted">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Users size={24} className="opacity-30" />
+                    <span className="text-sm font-medium">No users found matching criteria.</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               users.map((u) => {
-                const roleBadge =
-                  u.role === 'ADMIN'
-                    ? 'badge-red'
-                    : u.role === 'INCIDENT_MANAGER'
-                    ? 'badge-amber'
-                    : u.role === 'RESPONDER'
-                    ? 'badge-blue'
-                    : 'badge-gray';
+                const isSystemAdmin = u.role === 'ADMIN';
 
                 return (
-                  <tr key={u.id}>
+                  <tr key={u.id} className="hover:bg-surface-elevated transition-colors">
                     <td>
-                      <span className={`badge ${u.is_active ? 'badge-emerald' : 'badge-red'}`}>
-                        {u.is_active ? 'Active' : 'Disabled'}
-                      </span>
+                      <div className="status-indicator">
+                        <span className={`status-dot bg-${u.is_active ? 'emerald' : 'red'}`}></span>
+                        <span className="text-xs uppercase font-semibold text-muted">{u.is_active ? 'Active' : 'Disabled'}</span>
+                      </div>
                     </td>
                     <td className="font-bold text-main">{u.full_name}</td>
-                    <td className="font-mono text-cyan text-xs">@{u.username}</td>
-                    <td><span className={`badge ${roleBadge}`}>{u.role}</span></td>
-                    <td className="text-xs font-mono text-dim">
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
+                    <td className="font-mono text-blue text-xs">@{u.username}</td>
                     <td>
                       <select
-                        className="form-select text-xs"
-                        style={{ width: 'auto', padding: '0.25rem 0.5rem' }}
+                        className={`form-select text-xs font-semibold py-1 px-2 border-subtle bg-transparent ${isSystemAdmin ? 'text-red' : 'text-main'}`}
+                        style={{ width: '150px' }}
                         value={u.role}
                         onChange={(e) => handleUpdateRole(u.id, e.target.value as UserRole)}
                       >
@@ -222,11 +217,13 @@ export const PeopleView: React.FC = () => {
                         <option value="VIEWER">VIEWER</option>
                       </select>
                     </td>
-                    <td>
+                    <td className="text-xs font-mono text-dim">
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="actions">
                       <button
                         onClick={() => handleToggleActive(u)}
-                        className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-primary'}`}
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem' }}
+                        className={`btn btn-sm ${u.is_active ? 'text-red bg-red/5 hover:bg-red/10 border-transparent' : 'btn-primary'}`}
                       >
                         {u.is_active ? 'Deactivate' : 'Activate'}
                       </button>
@@ -239,89 +236,92 @@ export const PeopleView: React.FC = () => {
         </table>
       </div>
 
-      {/* Create User Modal */}
-      {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center pb-3 mb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <UserPlus size={18} className="text-blue" /> Create New Operator Account
+      {/* Add Drawer */}
+      {showDrawer && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setShowDrawer(false)}></div>
+          <div className="drawer-panel">
+            <div className="drawer-header">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <UserPlus size={16} className="text-primary" /> Create Operator Account
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="btn-icon"><X size={18} /></button>
+              <button onClick={() => setShowDrawer(false)} className="btn-icon"><X size={16} /></button>
             </div>
 
-            <form onSubmit={handleCreateUser}>
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Dr. Sarah Connor"
-                  className="form-input text-xs"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
+            <div className="drawer-content">
+              <form id="user-form" onSubmit={handleCreateUser} className="space-y-4">
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. John Doe"
+                    className="form-input"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Username</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. sarah_c"
-                  className="form-input text-xs font-mono"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
+                <div className="form-group">
+                  <label className="form-label">Username (Unique ID)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. jdoe_medic"
+                    className="form-input font-mono"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Email (Optional)</label>
-                <input
-                  type="email"
-                  placeholder="sarah@mesh.local"
-                  className="form-input text-xs"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+                <div className="form-group">
+                  <label className="form-label">Email Address (Optional)</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. jdoe@agency.gov"
+                    className="form-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Password (Min 8 chars, 1 uppercase, 1 digit)</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="SecurePassword123"
-                  className="form-input text-xs"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+                <div className="form-group">
+                  <label className="form-label">Temporary Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Min 6 characters"
+                    className="form-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">System Role & Access Level</label>
-                <select
-                  className="form-select text-xs"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as UserRole)}
-                >
-                  <option value="ADMIN">ADMIN (Full Access)</option>
-                  <option value="INCIDENT_MANAGER">INCIDENT_MANAGER (Triage & Dispatch)</option>
-                  <option value="RESPONDER">RESPONDER (Field Unit)</option>
-                  <option value="CIVILIAN">CIVILIAN (Report Incidents & SOS)</option>
-                  <option value="VIEWER">VIEWER (Read Only)</option>
-                </select>
-              </div>
+                <div className="form-group">
+                  <label className="form-label">System Access Role</label>
+                  <select
+                    className="form-select font-bold text-main"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as UserRole)}
+                  >
+                    <option value="CIVILIAN">CIVILIAN (No dashboard access)</option>
+                    <option value="VIEWER">VIEWER (Read-only)</option>
+                    <option value="RESPONDER">RESPONDER (Incident execution)</option>
+                    <option value="INCIDENT_MANAGER">INCIDENT_MANAGER (Dispatch & control)</option>
+                    <option value="ADMIN">ADMIN (Full network control)</option>
+                  </select>
+                </div>
+              </form>
+            </div>
 
-              <div className="flex justify-end gap-2 mt-4 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-sm">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="btn btn-sm btn-primary">
-                  {actionLoading ? 'Creating...' : 'Create Account'}
-                </button>
-              </div>
-            </form>
+            <div className="drawer-footer">
+              <button type="button" onClick={() => setShowDrawer(false)} className="btn">Cancel</button>
+              <button type="submit" form="user-form" disabled={actionLoading} className="btn btn-primary">
+                {actionLoading ? 'Creating...' : 'Create Account'}
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -115,24 +115,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={sidebarClasses}>
       <div className="sidebar-header">
         <div
+          className="flex items-center justify-center shrink-0"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0.375rem',
-            background: 'rgba(113, 137, 166, 0.12)',
-            borderRadius: '8px',
-            border: '1px solid rgba(113, 137, 166, 0.2)',
-            flexShrink: 0,
+            padding: '6px',
+            background: 'var(--bg-card)',
+            borderRadius: '6px',
+            border: '1px solid var(--border-subtle)',
           }}
         >
-          <Radio size={18} style={{ color: 'var(--accent-primary)' }} />
+          <Radio size={16} style={{ color: 'var(--accent-primary)' }} />
         </div>
         <div className="sidebar-brand-text">
-          <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-main)', letterSpacing: '0.3px' }}>
+          <div className="text-sm font-bold text-main leading-tight tracking-tight">
             E-MESH NOC
           </div>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+          <div className="text-xs text-muted leading-tight">
             Admin Panel
           </div>
         </div>
@@ -141,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="sidebar-nav">
         {navSections.map((section, sIdx) => (
           <React.Fragment key={section.label}>
-            {sIdx > 0 && <div style={{ height: '0.375rem' }} />}
+            {sIdx > 0 && <div style={{ height: '8px' }} />}
             <div className="sidebar-section-label">{section.label}</div>
             {section.items.map((item) => {
               const Icon = item.icon;
@@ -156,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center gap-3">
                     <Icon
-                      size={17}
+                      size={16}
                       style={{
                         color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
                         flexShrink: 0,
@@ -178,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onClick={() => setCollapsed(!collapsed)}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
-        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
     </aside>
   );

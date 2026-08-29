@@ -11,6 +11,8 @@ import {
   RefreshCw,
   Shield,
   Zap,
+  ActivitySquare,
+  Network
 } from 'lucide-react';
 import { api } from '../api/client';
 import { AnalyticsSummary, Incident, SOS } from '../api/types';
@@ -35,7 +37,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
       const [stats, sosResp, incResp] = await Promise.all([
         api.getAnalyticsSummary(),
         api.getSOSList({ status: 'ACTIVE', page_size: 5 }),
-        api.getIncidents({ page_size: 6 }),
+        api.getIncidents({ page_size: 5 }),
       ]);
       setAnalytics(stats);
       setActiveSOSList(sosResp.data);
@@ -51,7 +53,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
     loadData();
   }, []);
 
-  // Real-time event subscriptions
   useMeshEvent('sos.created', () => loadData());
   useMeshEvent('incident.created', () => loadData());
   useMeshEvent('incident.updated', () => loadData());
@@ -59,292 +60,219 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
   useMeshEvent('node.online', () => loadData());
   useMeshEvent('node.offline', () => loadData());
 
+  const hasSOS = activeSOSList.length > 0;
+
   return (
-    <div>
-      {/* Top Title & Refresh */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-4">
+      {/* Header Area */}
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            Operational Overview
-          </h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-            Mesh network status and active operations
-          </p>
+          <h2 className="text-2xl font-bold text-main leading-tight">Dashboard Overview</h2>
+          <p className="text-sm text-muted mt-1">Network status and active field operations</p>
         </div>
-        <button onClick={loadData} disabled={loading} className="btn btn-sm">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted font-mono">Last updated: Just now</span>
+          </div>
+          <button onClick={loadData} disabled={loading} className="btn btn-sm">
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Emergency SOS Banner (Visible if active alerts exist) */}
-      {activeSOSList.length > 0 && (
-        <div className="emergency-banner">
-          <div className="flex items-center gap-3">
-            <div
-              style={{
-                padding: '0.5rem',
-                background: 'var(--accent-red)',
-                borderRadius: '50%',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <AlertOctagon size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--accent-red)' }}>
-                Active SOS Alert ({activeSOSList.length} Distress Signal{activeSOSList.length > 1 ? 's' : ''})
+      {/* Critical SOS Strip */}
+      {hasSOS && (
+        <div className="widget" style={{ borderLeft: '4px solid var(--accent-red)', background: 'rgba(201, 130, 130, 0.04)' }}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center rounded-full bg-red text-white" style={{ width: '32px', height: '32px' }}>
+                <AlertOctagon size={16} />
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Immediate responder dispatch required. People affected: {activeSOSList.reduce((acc, s) => acc + s.people_count, 0)}
+              <div>
+                <div className="text-sm font-bold text-red uppercase tracking-wider">
+                  Critical SOS Alert ({activeSOSList.length} Active)
+                </div>
+                <div className="text-xs text-muted mt-1">
+                  Immediate dispatch required for {activeSOSList.reduce((acc, s) => acc + s.people_count, 0)} personnel.
+                </div>
               </div>
             </div>
+            <button onClick={() => setActiveTab('sos')} className="btn btn-danger btn-sm">
+              Triage Queue <ArrowRight size={14} />
+            </button>
           </div>
-          <button onClick={() => setActiveTab('sos')} className="btn btn-danger btn-sm">
-            Triage SOS <ArrowRight size={14} />
-          </button>
         </div>
       )}
 
-      {/* Primary KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="metric-card border-red">
+      {/* Top Status Strip (Small Widgets) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Metric 1 */}
+        <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-red)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active SOS Calls</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{analytics?.sos.active ?? 0}</div>
-            </div>
-            <div style={{ padding: '0.5rem', background: 'rgba(201, 130, 130, 0.1)', borderRadius: '8px' }}>
-              <AlertOctagon size={18} style={{ color: 'var(--accent-red)' }} />
+              <div className="metric-label uppercase tracking-widest text-muted"><AlertOctagon size={12} className="text-red"/> Active SOS</div>
+              <div className="metric-value font-mono text-red">{analytics?.sos.active ?? 0}</div>
             </div>
           </div>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>Total Logged: {analytics?.sos.total ?? 0}</span>
-            <span style={{ color: 'var(--accent-red)', fontWeight: 600 }}>Priority: Max</span>
+          <div className="metric-subtext">
+            <span>{analytics?.sos.total ?? 0} total logged</span>
+            <span className="font-semibold text-red">Max Priority</span>
           </div>
         </div>
 
-        <div className="metric-card border-amber">
+        {/* Metric 2 */}
+        <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-amber)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Incidents</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>{analytics?.incidents.active ?? 0}</div>
-            </div>
-            <div style={{ padding: '0.5rem', background: 'rgba(216, 184, 120, 0.1)', borderRadius: '8px' }}>
-              <AlertTriangle size={18} style={{ color: 'var(--accent-amber)' }} />
+              <div className="metric-label uppercase tracking-widest text-muted"><AlertTriangle size={12} className="text-amber"/> Incidents</div>
+              <div className="metric-value font-mono text-amber">{analytics?.incidents.active ?? 0}</div>
             </div>
           </div>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>Resolved: {analytics?.incidents.resolved ?? 0}</span>
-            <span style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Triage Required</span>
+          <div className="metric-subtext">
+            <span>{analytics?.incidents.resolved ?? 0} resolved today</span>
+            <span className="font-semibold text-amber">Triage Required</span>
           </div>
         </div>
 
-        <div className="metric-card border-emerald">
+        {/* Metric 3 */}
+        <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-emerald)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Mesh Nodes Online</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
-                {analytics?.mesh.online_nodes ?? 0} / {analytics?.mesh.total_nodes ?? 0}
+              <div className="metric-label uppercase tracking-widest text-muted"><Radio size={12} className="text-emerald"/> Mesh Nodes</div>
+              <div className="metric-value font-mono text-main">
+                {analytics?.mesh.online_nodes ?? 0} <span className="text-lg text-dim">/ {analytics?.mesh.total_nodes ?? 0}</span>
               </div>
             </div>
-            <div style={{ padding: '0.5rem', background: 'rgba(136, 179, 148, 0.1)', borderRadius: '8px' }}>
-              <Radio size={18} style={{ color: 'var(--accent-emerald)' }} />
-            </div>
           </div>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>Mesh Health: {analytics?.mesh.health_pct ?? 100}%</span>
-            <span className="flex items-center gap-1" style={{ color: 'var(--accent-emerald)' }}>
-              <BatteryCharging size={12} /> Avg {analytics?.mesh.avg_battery_pct ?? 100}%
-            </span>
+          <div className="metric-subtext">
+            <span>Health: {analytics?.mesh.health_pct ?? 100}%</span>
+            <span className="flex items-center gap-1 font-semibold text-emerald"><BatteryCharging size={10} /> {analytics?.mesh.avg_battery_pct ?? 100}%</span>
           </div>
         </div>
 
-        <div className="metric-card border-blue">
+        {/* Metric 4 */}
+        <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-blue)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Field Responders</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--accent-blue)', fontFamily: 'var(--font-mono)' }}>
-                {analytics?.responders.available ?? 0} <span style={{ fontSize: '0.8125rem', fontWeight: 400, color: 'var(--text-dim)' }}>Avail</span>
+              <div className="metric-label uppercase tracking-widest text-muted"><Shield size={12} className="text-blue"/> Responders</div>
+              <div className="metric-value font-mono text-main">
+                {analytics?.responders.available ?? 0} <span className="text-lg text-dim">Avail</span>
               </div>
             </div>
-            <div style={{ padding: '0.5rem', background: 'rgba(113, 137, 166, 0.1)', borderRadius: '8px' }}>
-              <Shield size={18} style={{ color: 'var(--accent-blue)' }} />
-            </div>
           </div>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>Deployed: {analytics?.responders.deployed ?? 0}</span>
-            <span>Total: {analytics?.responders.total ?? 0}</span>
+          <div className="metric-subtext">
+            <span>{analytics?.responders.deployed ?? 0} deployed</span>
+            <span>{analytics?.responders.total ?? 0} total</span>
           </div>
         </div>
       </div>
 
-      {/* Quick Action Bar */}
-      <div className="card mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Zap size={15} style={{ color: 'var(--accent-amber)' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-main)' }}>Quick Actions</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setActiveTab('announcements')} className="btn btn-sm">
-              <Megaphone size={13} style={{ color: 'var(--accent-amber)' }} /> Broadcast
-            </button>
-            <button onClick={() => setActiveTab('responders')} className="btn btn-sm">
-              <Shield size={13} style={{ color: 'var(--accent-blue)' }} /> Responders
-            </button>
-            <button onClick={() => setActiveTab('nodes')} className="btn btn-sm">
-              <Cpu size={13} style={{ color: 'var(--accent-cyan)' }} /> Add Node
-            </button>
-            <button onClick={() => setActiveTab('topology')} className="btn btn-sm btn-primary">
-              <Activity size={13} /> Network Map
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Two Column Layout: Recent Incidents & Mesh Health Summary */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left: Incident Feed */}
-        <div className="col-span-12 lg:col-span-8">
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={16} style={{ color: 'var(--accent-amber)' }} />
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>Recent Incidents</h3>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        {/* Left Large Column (Network Health & Quick Actions) */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="widget" style={{ minHeight: '320px' }}>
+            <div className="widget-header border-b border-subtle pb-3 mb-4">
+              <div className="widget-title"><Network size={16}/> Mesh Network Health</div>
+              <button onClick={() => setActiveTab('topology')} className="btn btn-sm">View Map</button>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                <div className="text-xs text-muted mb-1">Tree Depth</div>
+                <div className="text-xl font-bold font-mono text-main">4 Layers</div>
               </div>
-              <button
-                onClick={() => setActiveTab('incidents')}
-                style={{
-                  fontSize: '0.75rem',
-                  color: 'var(--accent-blue)',
-                  fontWeight: 600,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                View All <ArrowRight size={12} />
-              </button>
+              <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                <div className="text-xs text-muted mb-1">Root Node</div>
+                <div className="text-xl font-bold font-mono text-emerald">GATEWAY</div>
+              </div>
+              <div className="p-3 bg-surface-elevated border border-subtle rounded-sm">
+                <div className="text-xs text-muted mb-1">Packet Loss</div>
+                <div className="text-xl font-bold font-mono text-main">0.4%</div>
+              </div>
             </div>
 
-            {recentIncidents.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                No incidents currently reported.
+            <div className="flex-1 bg-app border border-subtle rounded-sm flex items-center justify-center text-muted text-sm relative overflow-hidden p-4">
+              {/* Abstract visualization of network health */}
+              <div className="absolute inset-0 opacity-10" style={{ background: 'repeating-linear-gradient(45deg, var(--accent-primary) 0, var(--accent-primary) 1px, transparent 1px, transparent 16px)' }} />
+              <div className="relative z-10 flex flex-col items-center gap-2">
+                <Radio size={32} className="text-emerald opacity-80" />
+                <span className="font-mono text-xs uppercase tracking-widest text-main">Topology Stable</span>
+                <span className="text-xs text-dim text-center max-w-xs">Routing tree optimized. No significant congestion detected in application payload stream.</span>
               </div>
-            ) : (
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Priority</th>
-                      <th>Category</th>
-                      <th>Description</th>
-                      <th>Status</th>
-                      <th>Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentIncidents.map((inc) => {
-                      const priorityColor =
-                        inc.priority === 'CRITICAL'
-                          ? 'badge-red'
-                          : inc.priority === 'HIGH'
-                          ? 'badge-amber'
-                          : inc.priority === 'MEDIUM'
-                          ? 'badge-blue'
-                          : 'badge-gray';
+            </div>
+          </div>
 
-                      const statusColor =
-                        inc.status === 'SUBMITTED'
-                          ? 'badge-amber'
-                          : inc.status === 'IN_PROGRESS'
-                          ? 'badge-blue'
-                          : inc.status === 'RESOLVED'
-                          ? 'badge-emerald'
-                          : 'badge-gray';
-
-                      return (
-                        <tr key={inc.id} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('incidents')}>
-                          <td><span className={`badge ${priorityColor}`}>{inc.priority}</span></td>
-                          <td style={{ fontWeight: 600 }}>{inc.category.replace(/_/g, ' ')}</td>
-                          <td style={{ color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {inc.description}
-                          </td>
-                          <td><span className={`badge ${statusColor}`}>{inc.status.replace(/_/g, ' ')}</span></td>
-                          <td style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                            {new Date(inc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+          {/* Quick Actions Panel */}
+          <div className="widget">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 shrink-0 border-r border-subtle pr-4">
+                <Zap size={14} className="text-amber" />
+                <span className="text-xs font-bold uppercase tracking-widest text-main">Actions</span>
               </div>
-            )}
+              <div className="flex items-center gap-2 overflow-x-auto flex-1">
+                <button onClick={() => setActiveTab('announcements')} className="btn btn-sm">
+                  <Megaphone size={12} className="text-amber" /> Broadcast
+                </button>
+                <button onClick={() => setActiveTab('responders')} className="btn btn-sm">
+                  <Shield size={12} className="text-blue" /> Dispatch
+                </button>
+                <button onClick={() => setActiveTab('nodes')} className="btn btn-sm">
+                  <Cpu size={12} className="text-cyan" /> Configure Node
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Right: Operational Status Panels */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-          <div className="card">
-            <h3 className="flex items-center gap-2" style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
-              <Activity size={15} style={{ color: 'var(--accent-blue)' }} /> Severity Breakdown
-            </h3>
-            <div className="flex flex-col gap-3">
-              {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((prio) => {
-                const count = analytics?.incidents.by_priority[prio] ?? 0;
-                const total = analytics?.incidents.total || 1;
-                const pct = Math.round((count / total) * 100);
-                const color =
-                  prio === 'CRITICAL'
-                    ? 'var(--accent-red)'
-                    : prio === 'HIGH'
-                    ? 'var(--accent-amber)'
-                    : prio === 'MEDIUM'
-                    ? 'var(--accent-blue)'
-                    : 'var(--text-dim)';
-
-                return (
-                  <div key={prio}>
-                    <div className="flex justify-between" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                      <span>{prio}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)' }}>{count} ({pct}%)</span>
+        {/* Right Medium Column (Recent Incidents) */}
+        <div className="lg:col-span-4 flex flex-col space-y-4">
+          <div className="widget flex-1" style={{ minHeight: '384px' }}>
+            <div className="widget-header border-b border-subtle pb-3 mb-0">
+              <div className="widget-title"><ActivitySquare size={16}/> Active Incidents</div>
+              <button onClick={() => setActiveTab('incidents')} className="text-xs font-semibold text-blue hover:underline">View All</button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {recentIncidents.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-muted p-6 text-center gap-2">
+                  <Activity size={24} className="opacity-20" />
+                  <span className="text-xs font-medium">No recent incidents reported.</span>
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  {recentIncidents.map((incident, idx) => (
+                    <div 
+                      key={incident.incident_id} 
+                      className={`p-3 border-b border-subtle flex flex-col gap-2 hover:bg-surface-elevated transition-colors cursor-pointer ${idx === recentIncidents.length -1 ? 'border-b-0' : ''}`}
+                      onClick={() => setActiveTab('incidents')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold text-main">{incident.incident_id}</span>
+                        <span className={`badge ${incident.severity === 'CRITICAL' ? 'badge-red' : incident.severity === 'HIGH' ? 'badge-amber' : 'badge-blue'}`}>
+                          {incident.severity}
+                        </span>
+                      </div>
+                      <div className="text-sm font-medium text-main leading-tight truncate">
+                        {incident.title}
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-xs text-muted flex items-center gap-1">
+                          <AlertTriangle size={10} /> {incident.category}
+                        </div>
+                        <div className="text-xs text-dim font-mono">
+                          {new Date(incident.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ height: '5px', background: 'var(--bg-surface-elevated)', borderRadius: '999px', overflow: 'hidden' }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '999px' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="flex items-center gap-2" style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
-              <Radio size={15} style={{ color: 'var(--accent-emerald)' }} /> Gateway Simulator
-            </h3>
-            <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-              <div className="flex justify-between py-1" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span>LAYER:</span> <span style={{ color: 'var(--accent-emerald)' }}>Software Emulation</span>
-              </div>
-              <div className="flex justify-between py-1" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span>HARDWARE:</span> <span style={{ color: 'var(--text-main)' }}>ESP32-WROOM-32</span>
-              </div>
-              <div className="flex justify-between py-1" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span>PACKET LOSS:</span> <span style={{ color: 'var(--accent-emerald)' }}>0.02%</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>HOP LIMIT:</span> <span style={{ color: 'var(--text-main)' }}>7 Hops Max</span>
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

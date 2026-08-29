@@ -44,46 +44,46 @@ export const AuditLogView: React.FC = () => {
   };
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>Audit Log</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+          <h2 className="text-xl font-bold text-main leading-tight">Audit Log</h2>
+          <p className="text-sm text-muted mt-1">
             System logs, operator actions, and compliance records ({total} entries)
           </p>
         </div>
 
-        <button onClick={loadLogs} disabled={loading} className="btn btn-sm">
+        <button onClick={loadLogs} disabled={loading} className="btn">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Trail
         </button>
       </div>
 
       {/* Filter Bar */}
-      <div className="card mb-6" style={{ background: 'var(--bg-surface)' }}>
+      <div className="widget bg-surface-elevated p-3 border-subtle">
         <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-1 items-center gap-2" style={{ minWidth: '240px' }}>
+          <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative w-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search audit actions, usernames, entity IDs, IP..."
-                className="form-input"
-                style={{ paddingLeft: '2rem' }}
+                className="form-input pl-8"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Search size={14} className="text-dim absolute" style={{ left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
-            <button type="submit" className="btn btn-sm btn-primary">Search</button>
+            <button type="submit" className="btn btn-primary">Search</button>
           </div>
 
           <div className="flex items-center gap-2">
+            <span className="text-xs text-muted font-bold tracking-widest uppercase">Action Filter</span>
             <select
-              className="form-select text-xs"
+              className="form-select text-xs py-1.5"
               style={{ width: 'auto' }}
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
             >
-              <option value="">All Action Types</option>
+              <option value="">All Actions</option>
               <option value="auth.login">auth.login</option>
               <option value="auth.logout">auth.logout</option>
               <option value="user.registered">user.registered</option>
@@ -119,8 +119,11 @@ export const AuditLogView: React.FC = () => {
           <tbody>
             {logs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-muted">
-                  No audit logs found matching criteria.
+                <td colSpan={6} className="text-center py-12 text-muted">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <FileText size={24} className="opacity-30" />
+                    <span className="text-sm font-medium">No audit logs found matching criteria.</span>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -128,11 +131,7 @@ export const AuditLogView: React.FC = () => {
                 const isAuth = log.action.startsWith('auth.');
                 const isCritical = log.action.includes('delete') || log.action.includes('deactivate');
 
-                const actionBadge = isCritical
-                  ? 'badge-red'
-                  : isAuth
-                  ? 'badge-blue'
-                  : 'badge-purple';
+                const actionColor = isCritical ? 'red' : isAuth ? 'emerald' : 'blue';
 
                 const rawTime = log.timestamp || log.created_at;
                 let formattedDate = '—';
@@ -149,25 +148,29 @@ export const AuditLogView: React.FC = () => {
                 }
 
                 return (
-                  <tr key={log.id}>
-                    <td className="font-mono text-xs text-dim" style={{ whiteSpace: 'nowrap' }}>
+                  <tr key={log.id} className="hover:bg-surface-elevated transition-colors">
+                    <td className="font-mono text-xs text-dim whitespace-nowrap">
                       {formattedDate}
                     </td>
                     <td>
-                      <span className={`badge ${actionBadge}`}>{log.action}</span>
+                      <span className={`badge bg-${actionColor}/10 text-${actionColor} border border-${actionColor}/20 font-mono`}>
+                        {log.action}
+                      </span>
                     </td>
                     <td>
-                      <span className="font-semibold text-xs flex items-center gap-1.5">
+                      <span className="font-semibold text-xs flex items-center gap-1.5 text-main">
                         <User size={12} className="text-muted" />
                         {log.actor_username || log.actor_id || 'System Anonymous'}
                       </span>
                     </td>
-                    <td className="font-mono text-xs text-cyan">
+                    <td className="font-mono text-xs text-primary">
                       {log.entity_type ? `${log.entity_type} (${log.entity_id?.slice(0, 8)})` : 'N/A'}
                     </td>
                     <td className="font-mono text-xs text-muted">{log.ip_address || '127.0.0.1'}</td>
-                    <td className="text-xs font-mono text-dim" style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {metaContent}
+                    <td className="text-xs font-mono text-dim" style={{ maxWidth: '300px' }}>
+                      <div className="truncate" title={metaContent}>
+                        {metaContent}
+                      </div>
                     </td>
                   </tr>
                 );
