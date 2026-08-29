@@ -179,15 +179,17 @@ export const IncidentsView: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Filter size={14} className="text-muted" />
-              <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="">All Statuses</option>
-                <option value="SUBMITTED">Submitted</option>
-                <option value="ACKNOWLEDGED">Acknowledged</option>
-                <option value="ASSIGNED">Assigned</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="RESOLVED">Resolved</option>
-                <option value="CLOSED">Closed</option>
-              </select>
+                <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                  <option value="">All Statuses</option>
+                  <option value="SUBMITTED">Submitted</option>
+                  <option value="ACKNOWLEDGED">Acknowledged</option>
+                  <option value="ASSIGNED">Assigned</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="RESPONDING">Responding</option>
+                  <option value="RESOLVED">Resolved</option>
+                  <option value="CLOSED">Closed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
             </div>
 
             <div className="flex items-center gap-2">
@@ -248,7 +250,9 @@ export const IncidentsView: React.FC = () => {
                       {inc.assigned_responder_id ? (
                         <div className="flex items-center gap-1 font-semibold text-blue">
                           <Shield size={12} />
-                          {responders.find((r) => r.id === inc.assigned_responder_id)?.name || inc.assigned_responder_id}
+                          {responders.find((r) => r.id === inc.assigned_responder_id)?.user?.full_name
+                            || responders.find((r) => r.id === inc.assigned_responder_id)?.user?.username
+                            || inc.assigned_responder_id.slice(0, 8)}
                         </div>
                       ) : (
                         <span className="text-muted text-xs italic">Unassigned</span>
@@ -347,7 +351,7 @@ export const IncidentsView: React.FC = () => {
                     <option value="">-- Unassigned --</option>
                     {responders.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.name} ({r.status})
+                        {r.user?.full_name || r.user?.username || r.user_id.slice(0, 8)} ({r.status})
                       </option>
                     ))}
                   </select>
@@ -368,7 +372,7 @@ export const IncidentsView: React.FC = () => {
                     <CheckCircle size={12}/> Resolution Details
                   </h5>
                   <div className="p-3 bg-emerald/10 border border-emerald/20 rounded-sm text-sm text-main">
-                    {selectedIncident.resolution_notes || 'No notes provided.'}
+                    {selectedIncident.additional_info || 'No notes provided.'}
                     <div className="text-xs text-muted mt-2 font-mono">
                       Resolved: {selectedIncident.resolved_at ? new Date(selectedIncident.resolved_at).toLocaleString() : 'Unknown'}
                     </div>

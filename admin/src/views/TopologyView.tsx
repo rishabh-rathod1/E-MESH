@@ -235,7 +235,7 @@ export const TopologyView: React.FC = () => {
                       textAnchor="middle"
                       className="pointer-events-none"
                     >
-                      {link.rssi} dBm
+                      {link.rssi_dbm} dBm
                     </text>
                   </g>
                 );
@@ -335,16 +335,16 @@ export const TopologyView: React.FC = () => {
                     <div className="text-xl font-mono text-main">{selectedNode.layer}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
-                    <div className="flex items-center gap-2 text-muted mb-2"><Route size={14}/> <span className="text-xs font-semibold">Hop Count</span></div>
-                    <div className="text-xl font-mono text-main">{selectedNode.hop_count}</div>
+                    <div className="flex items-center gap-2 text-muted mb-2"><Route size={14}/> <span className="text-xs font-semibold">Hop Count (Depth)</span></div>
+                    <div className="text-xl font-mono text-main">{selectedNode.layer}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Battery size={14}/> <span className="text-xs font-semibold">Battery</span></div>
-                    <div className="text-xl font-mono text-main">{selectedNode.battery_level}%</div>
+                    <div className="text-xl font-mono text-main">{selectedNode.battery_percent ?? 'N/A'}%</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
-                    <div className="flex items-center gap-2 text-muted mb-2"><Activity size={14}/> <span className="text-xs font-semibold">Last Seen</span></div>
-                    <div className="text-xs font-mono text-main truncate" title={selectedNode.last_seen}>{new Date(selectedNode.last_seen).toLocaleTimeString()}</div>
+                    <div className="flex items-center gap-2 text-muted mb-2"><Activity size={14}/> <span className="text-xs font-semibold">Last Heartbeat</span></div>
+                    <div className="text-xs font-mono text-main truncate" title={selectedNode.last_heartbeat ?? ''}>{selectedNode.last_heartbeat ? new Date(selectedNode.last_heartbeat).toLocaleTimeString() : 'N/A'}</div>
                   </div>
                 </div>
 
@@ -385,11 +385,11 @@ export const TopologyView: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Signal size={14}/> <span className="text-xs font-semibold">Signal (RSSI)</span></div>
-                    <div className="text-xl font-mono text-main">{selectedLink.rssi} <span className="text-xs">dBm</span></div>
+                    <div className="text-xl font-mono text-main">{selectedLink.rssi_dbm} <span className="text-xs">dBm</span></div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
-                    <div className="flex items-center gap-2 text-muted mb-2"><Zap size={14}/> <span className="text-xs font-semibold">Throughput</span></div>
-                    <div className="text-xl font-mono text-main">{selectedLink.throughput_kbps} <span className="text-xs">kbps</span></div>
+                    <div className="flex items-center gap-2 text-muted mb-2"><Zap size={14}/> <span className="text-xs font-semibold">Packet Loss</span></div>
+                    <div className="text-xl font-mono text-main">{selectedLink.packet_loss_percent} <span className="text-xs">%</span></div>
                   </div>
                 </div>
                </div>

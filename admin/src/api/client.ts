@@ -190,9 +190,11 @@ class ApiClient {
   }
 
   public async resolveIncident(id: string, notes?: string): Promise<Incident> {
+    const body: Record<string, any> = { status: 'RESOLVED' };
+    if (notes) body['additional_info'] = notes;
     return this.request<Incident>(`/incidents/${id}/resolve`, {
       method: 'POST',
-      body: JSON.stringify({ status: 'RESOLVED', additional_info: notes }),
+      body: JSON.stringify(body),
     });
   }
 

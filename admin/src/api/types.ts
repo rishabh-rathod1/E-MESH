@@ -77,18 +77,24 @@ export interface User {
 
 export interface Incident {
   id: string;
+  incident_id: string;
   title?: string | null;
   category: IncidentCategory;
   priority: IncidentPriority;
   status: IncidentStatus;
   description: string;
   people_affected: number;
+  location?: string | null;
+  additional_info?: string | null;
   reporter_id?: string | null;
+  origin_node_id?: string | null;
   assigned_responder_id?: string | null;
   assigned_responder?: Responder | null;
-  node_id?: string | null;
   created_at: string;
   updated_at: string;
+  acknowledged_at?: string | null;
+  resolved_at?: string | null;
+  closed_at?: string | null;
 }
 
 export interface SOS {

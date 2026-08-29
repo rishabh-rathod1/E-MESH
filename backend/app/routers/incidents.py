@@ -247,7 +247,7 @@ async def resolve_incident_endpoint(
             "id": incident.id,
             "incident_id": incident.incident_id,
             "status": "RESOLVED",
-            "resolution_notes": incident.resolution_notes,
+            "resolution_notes": incident.additional_info or "",
             "updated_at": incident.updated_at.isoformat() if incident.updated_at else "",
         },
         target_roles=_ADMIN_ROLES,

@@ -250,12 +250,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-xs font-bold text-main">{incident.incident_id}</span>
-                        <span className={`badge ${incident.severity === 'CRITICAL' ? 'badge-red' : incident.severity === 'HIGH' ? 'badge-amber' : 'badge-blue'}`}>
-                          {incident.severity}
+                        <span className={`badge ${incident.priority === 'CRITICAL' ? 'badge-red' : incident.priority === 'HIGH' ? 'badge-amber' : 'badge-blue'}`}>
+                          {incident.priority}
                         </span>
                       </div>
                       <div className="text-sm font-medium text-main leading-tight truncate">
-                        {incident.title}
+                        {incident.category.replace(/_/g, ' ')} — {incident.description.slice(0, 60)}{incident.description.length > 60 ? '…' : ''}
                       </div>
                       <div className="flex items-center justify-between mt-1">
                         <div className="text-xs text-muted flex items-center gap-1">
