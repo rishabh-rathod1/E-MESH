@@ -21,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
   }, []);
 
   return (
-    <header className="app-header">
+    <header className="app-header glass-surface">
       <div className="flex items-center gap-3">
         <button className="mobile-menu-btn" onClick={onMobileMenuToggle} title="Toggle navigation">
           <Menu size={18} />

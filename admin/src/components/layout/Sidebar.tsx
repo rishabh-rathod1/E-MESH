@@ -105,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const sidebarClasses = [
     'app-sidebar',
+    'glass-panel',
     collapsed ? 'collapsed' : '',
     mobileOpen ? 'mobile-open' : '',
   ]
