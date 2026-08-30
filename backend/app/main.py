@@ -22,8 +22,10 @@ from app.routers import (
     announcements,
     audit_logs,
     auth,
+    community,
     health,
     incidents,
+    location,
     nodes,
     resources,
     responders,
@@ -107,6 +109,8 @@ def create_app() -> FastAPI:
     app.include_router(responders.router, prefix=prefix)
     app.include_router(analytics.router, prefix=prefix)
     app.include_router(audit_logs.router, prefix=prefix)
+    app.include_router(community.router, prefix=prefix)
+    app.include_router(location.router, prefix=prefix)
     app.include_router(simulation.router, prefix=prefix)
     app.include_router(websocket.router, prefix=prefix)
     app.include_router(websocket.router)  # also alias /ws at root level

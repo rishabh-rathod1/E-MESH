@@ -54,7 +54,9 @@ export type EventType =
   | 'node.updated'
   | 'topology.updated'
   | 'route.changed'
-  | 'system.alert';
+  | 'system.alert'
+  | 'user.location_updated'
+  | 'community.message_sent';
 
 export interface EventEnvelope<T = any> {
   id: string;
@@ -95,6 +97,14 @@ export interface Incident {
   acknowledged_at?: string | null;
   resolved_at?: string | null;
   closed_at?: string | null;
+}
+
+export interface CommunityMessage {
+  id: string;
+  sender_id?: string | null;
+  sender_username: string;
+  content: string;
+  sent_at: string;
 }
 
 export interface SOS {
@@ -301,4 +311,38 @@ export interface TimelineEvent {
   node_id: string;
   message: string;
   level: string;
+}
+
+export interface LocationPoint {
+  lat: number;
+  lng: number;
+  weight: number;
+  user_id: string;
+  username: string;
+  role: string;
+  updated_at: string;
+}
+
+export interface HeatmapResponse {
+  points: LocationPoint[];
+  total_active: number;
+  bounds: {
+    min_lat: number;
+    max_lat: number;
+    min_lng: number;
+    max_lng: number;
+  } | null;
+  generated_at: string;
+}
+
+export interface LocationUser {
+  id: string;
+  user_id: string;
+  username: string;
+  full_name: string;
+  role: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  updated_at: string;
 }

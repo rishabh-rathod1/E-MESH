@@ -9,6 +9,7 @@ import {
   Cpu,
   FileText,
   Layers,
+  MapPin,
   Megaphone,
   Network,
   Radio,
@@ -29,6 +30,8 @@ export type ActiveTab =
   | 'announcements'
   | 'analytics'
   | 'network-analytics'
+  | 'heatmap'
+  | 'community'
   | 'audit'
   | 'settings';
 
@@ -59,6 +62,7 @@ const navSections = [
         badgeKey: 'incidents' as const,
       },
       { id: 'topology' as ActiveTab, label: 'Network Map', icon: Network },
+      { id: 'heatmap' as ActiveTab, label: 'People Heatmap', icon: MapPin },
     ],
   },
   {
@@ -67,6 +71,7 @@ const navSections = [
       { id: 'nodes' as ActiveTab, label: 'Devices', icon: Cpu },
       { id: 'responders' as ActiveTab, label: 'Responders', icon: Shield },
       { id: 'people' as ActiveTab, label: 'People', icon: Users },
+      { id: 'community' as ActiveTab, label: 'Community', icon: Radio },
       { id: 'resources' as ActiveTab, label: 'Resources', icon: Boxes },
       { id: 'announcements' as ActiveTab, label: 'Broadcasts', icon: Megaphone },
     ],

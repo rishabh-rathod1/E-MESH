@@ -57,6 +57,9 @@ class User(Base):
     announcements_created: Mapped[list["Announcement"]] = relationship(  # noqa: F821
         "Announcement", back_populates="creator"
     )
+    location: Mapped["UserLocation | None"] = relationship(  # noqa: F821
+        "UserLocation", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} username={self.username} role={self.role}>"

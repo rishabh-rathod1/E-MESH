@@ -3,7 +3,10 @@ import {
   AnalyticsSummary,
   Announcement,
   AuditLog,
+  CommunityMessage,
+  HeatmapResponse,
   Incident,
+  LocationUser,
   MeshNode,
   PaginatedResponse,
   ResourceItem,
@@ -198,6 +201,21 @@ class ApiClient {
     });
   }
 
+  // ── Community Group Chat ───────────────────────────────────────────────────
+  public async getCommunityMessages(params?: { page?: number; page_size?: number }): Promise<PaginatedResponse<CommunityMessage>> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.append('page', params.page.toString());
+    if (params?.page_size) qs.append('page_size', params.page_size.toString());
+    return this.request<PaginatedResponse<CommunityMessage>>(`/community/messages?${qs.toString()}`);
+  }
+
+  public async sendCommunityMessage(content: string): Promise<CommunityMessage> {
+    return this.request<CommunityMessage>('/community/messages', {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
   // ── SOS ────────────────────────────────────────────────────────────────────
   public async getSOSList(params?: { page?: number; page_size?: number; status?: string }): Promise<PaginatedResponse<SOS>> {
     const qs = new URLSearchParams();
@@ -368,8 +386,12 @@ class ApiClient {
   }
 
   // ── Announcements ──────────────────────────────────────────────────────────
-  public async getAnnouncements(active_only = false): Promise<PaginatedResponse<Announcement>> {
-    return this.request<PaginatedResponse<Announcement>>(`/announcements?active_only=${active_only}&page_size=50`);
+  public async getAnnouncements(active_only?: boolean): Promise<PaginatedResponse<Announcement>> {
+    let url = `/announcements?page_size=50`;
+    if (active_only !== undefined) {
+      url += `&active_only=${active_only}`;
+    }
+    return this.request<PaginatedResponse<Announcement>>(url);
   }
 
   public async createAnnouncement(payload: {
@@ -513,6 +535,15 @@ class ApiClient {
     if (params?.action) qs.append('action', params.action);
     if (params?.search) qs.append('search', params.search);
     return this.request<PaginatedResponse<AuditLog>>(`/audit-logs?${qs.toString()}`);
+  }
+
+  // ── Location / Heatmap ─────────────────────────────────────────────────────
+  public async getHeatmapData(windowMinutes = 30): Promise<HeatmapResponse> {
+    return this.request<HeatmapResponse>(`/location/heatmap?window_minutes=${windowMinutes}`);
+  }
+
+  public async getLocationUsers(windowMinutes = 30): Promise<LocationUser[]> {
+    return this.request<LocationUser[]>(`/location/users?window_minutes=${windowMinutes}`);
   }
 }
 

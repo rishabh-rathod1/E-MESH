@@ -40,6 +40,12 @@ class EventType(str, Enum):
     # System Alerts
     SYSTEM_ALERT = "system.alert"
 
+    # Civilian Location Tracking
+    USER_LOCATION_UPDATED = "user.location_updated"
+
+    # Community Group Chat
+    COMMUNITY_MESSAGE_SENT = "community.message_sent"
+
 
 class EventEnvelope(EMeshBaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -114,3 +120,11 @@ class SystemAlertPayload(EMeshBaseModel):
     message: str
     component: str
     timestamp: str
+
+
+class CommunityMessagePayload(EMeshBaseModel):
+    message_id: str
+    sender_id: str
+    sender_username: str
+    content: str
+    sent_at: str
