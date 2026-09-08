@@ -7,6 +7,7 @@ Phase 1: Backend foundation — authentication, RBAC, models, and core APIs.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -31,6 +32,7 @@ from app.routers import (
     sos,
     users,
     websocket,
+    mesh_hardware,
 )
 
 settings = get_settings()
@@ -48,8 +50,14 @@ async def lifespan(app: FastAPI):
     """Run startup and shutdown tasks."""
     logger.info("E-Mesh starting up — initializing database...")
     await init_db()
+
+    # Launch background task to mark stale nodes as OFFLINE
+    from app.tasks.node_monitor import node_staleness_monitor
+    monitor_task = asyncio.create_task(node_staleness_monitor())
+
     logger.info("E-Mesh ready. API running at %s:%s", settings.HOST, settings.PORT)
     yield
+    monitor_task.cancel()
     logger.info("E-Mesh shutting down.")
 
 
@@ -108,8 +116,16 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router, prefix=prefix)
     app.include_router(audit_logs.router, prefix=prefix)
     app.include_router(simulation.router, prefix=prefix)
+    app.include_router(mesh_hardware.router, prefix=prefix)
     app.include_router(websocket.router, prefix=prefix)
     app.include_router(websocket.router)  # also alias /ws at root level
+
+    # Mount the client directory to serve the frontend portal
+    import os
+    from fastapi.staticfiles import StaticFiles
+    client_dir = r"c:\projects\pjt1\client"
+    if os.path.exists(client_dir):
+        app.mount("/client", StaticFiles(directory=client_dir, html=True), name="client")
 
     # ── Root endpoint ─────────────────────────────────────────────────────
     @app.get("/", tags=["Root"], include_in_schema=False)
