@@ -23,7 +23,7 @@ export const AnnouncementsView: React.FC = () => {
   // Form
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [priority, setPriority] = useState<AnnouncementPriority>('WARNING');
+  const [priority, setPriority] = useState<AnnouncementPriority>('NORMAL');
 
   const loadAnnouncements = async () => {
     setLoading(true);
@@ -44,7 +44,7 @@ export const AnnouncementsView: React.FC = () => {
   const resetForm = () => {
     setTitle('');
     setMessage('');
-    setPriority('WARNING');
+    setPriority('NORMAL');
   };
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
@@ -116,7 +116,7 @@ export const AnnouncementsView: React.FC = () => {
         ) : (
           announcements.map((ann) => {
             const isCrit = ann.priority === 'CRITICAL';
-            const isWarn = ann.priority === 'WARNING';
+            const isWarn = ann.priority === 'HIGH';
             const prioColor = isCrit ? 'red' : isWarn ? 'amber' : 'blue';
 
             return (
@@ -183,8 +183,8 @@ export const AnnouncementsView: React.FC = () => {
                 <div className="form-group">
                   <label className="form-label">Priority Level</label>
                   <div className="flex gap-2">
-                    {(['INFO', 'WARNING', 'CRITICAL'] as const).map((p) => {
-                      const color = p === 'CRITICAL' ? 'red' : p === 'WARNING' ? 'amber' : 'blue';
+                    {(['NORMAL', 'HIGH', 'CRITICAL'] as const).map((p) => {
+                      const color = p === 'CRITICAL' ? 'red' : p === 'HIGH' ? 'amber' : 'blue';
                       return (
                         <button
                           key={p}

@@ -163,6 +163,18 @@ const API = {
     return await this.request('/announcements?active_only=true');
   },
 
+  // ── Community Group Chat ────────────────────────────────────────────────
+  async getCommunityMessages() {
+    return await this.request('/community/messages');
+  },
+
+  async sendCommunityMessage(content) {
+    return await this.request('/community/messages', {
+      method: 'POST',
+      body: JSON.stringify({ content })
+    });
+  },
+
   // ── Real-Time WebSocket Layer ───────────────────────────────────────────
   ws: null,
   wsReconnectTimer: null,
@@ -198,6 +210,8 @@ const API = {
             window.dispatchEvent(new CustomEvent('emesh:incident_updated', { detail: payload.data }));
           } else if (payload.event === 'sos.created') {
             window.dispatchEvent(new CustomEvent('emesh:sos_created', { detail: payload.data }));
+          } else if (payload.event === 'community.message_sent') {
+            window.dispatchEvent(new CustomEvent('emesh:community_message', { detail: payload.data }));
           }
         } catch (err) {
           console.error('[E-Mesh WS] Error parsing frame', err);
@@ -217,5 +231,95 @@ const API = {
     } catch (err) {
       console.warn('[E-Mesh WS] Unable to create socket', err);
     }
+  },
+
+  // ── GPS Location Tracking ─────────────────────────────────────────────────
+  _locationWatchId: null,
+  _locationIntervalId: null,
+  _lastPosition: null,
+
+  async updateLocation(lat, lng, accuracy) {
+    if (!this.token) return;
+    try {
+      await this.request('/location', {
+        method: 'POST',
+        body: JSON.stringify({ latitude: lat, longitude: lng, accuracy: accuracy || null })
+      });
+    } catch (e) {
+      // Silent — location update failure should never interrupt the UX
+    }
+  },
+
+  startLocationTracking() {
+    if (!navigator.geolocation) {
+      if (typeof showToast === 'function') {
+        showToast("GPS not supported (needs HTTPS or localhost)", "error");
+      }
+      console.error("[E-Mesh] navigator.geolocation is undefined. You must use HTTPS or localhost.");
+      return;
+    }
+    if (this._locationWatchId !== null) return; // already tracking
+
+    const onSuccess = (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      this._lastPosition = { latitude, longitude, accuracy };
+      this.updateLocation(latitude, longitude, accuracy);
+      
+      // Update UI indicator if it exists
+      const indicator = document.getElementById('gps-indicator');
+      if (indicator) indicator.classList.remove('hidden');
+    };
+
+    const onError = (err) => {
+      console.warn('[E-Mesh] GPS Error:', err.message);
+      if (typeof showToast === 'function' && err.code === 1) { // 1 = PERMISSION_DENIED
+        showToast("GPS Permission Denied", "error");
+      }
+      
+      // Hide UI indicator if we can't get location
+      const indicator = document.getElementById('gps-indicator');
+      if (indicator && !this._lastPosition) indicator.classList.add('hidden');
+    };
+
+    // Use false for high accuracy to ensure we get a fast network/wifi lock if GPS satellite isn't available indoors
+    const opts = { enableHighAccuracy: false, maximumAge: 15000, timeout: 10000 };
+
+    // watchPosition for real-time GPS updates
+    this._locationWatchId = navigator.geolocation.watchPosition(onSuccess, onError, opts);
+
+    // 20-second interval backup (resends last known position to keep the server heartbeat alive)
+    this._locationIntervalId = setInterval(() => {
+      if (this._lastPosition) {
+        this.updateLocation(
+          this._lastPosition.latitude,
+          this._lastPosition.longitude,
+          this._lastPosition.accuracy
+        );
+      } else {
+        // Try a one-shot getCurrentPosition if watchPosition hasn't fired yet
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, opts);
+      }
+    }, 20000);
+
+    console.log('[E-Mesh] GPS location tracking started');
+  },
+
+  stopLocationTracking() {
+    if (this._locationWatchId !== null) {
+      navigator.geolocation.clearWatch(this._locationWatchId);
+      this._locationWatchId = null;
+    }
+    if (this._locationIntervalId !== null) {
+      clearInterval(this._locationIntervalId);
+      this._locationIntervalId = null;
+    }
+    this._lastPosition = null;
+
+    // Optionally clear location from server on logout
+    if (this.token) {
+      this.request('/location/me', { method: 'DELETE' }).catch(() => {});
+    }
+
+    console.log('[E-Mesh] GPS location tracking stopped');
   }
 };

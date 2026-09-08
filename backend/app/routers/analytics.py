@@ -59,7 +59,7 @@ async def get_analytics_summary(
     online_nodes = (
         await db.execute(select(func.count(Node.id)).where(Node.status == NodeStatus.ONLINE))
     ).scalar_one()
-    avg_battery = (await db.execute(select(func.avg(Node.battery_level)))).scalar_one() or 100.0
+    avg_battery = (await db.execute(select(func.avg(Node.battery_percent)))).scalar_one() or 100.0
 
     # Responder stats
     total_responders = (await db.execute(select(func.count(Responder.id)))).scalar_one()

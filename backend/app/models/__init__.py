@@ -13,9 +13,11 @@ from app.models.responder import Responder
 from app.models.sos import SOS
 from app.models.system_event import SystemEvent
 from app.models.user import User
+from app.models.user_location import UserLocation
 
 __all__ = [
     "User",
+    "UserLocation",
     "Device",
     "Node",
     "NodeLink",

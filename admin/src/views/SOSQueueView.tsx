@@ -97,7 +97,7 @@ export const SOSQueueView: React.FC = () => {
         <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-red)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div className="metric-label uppercase tracking-widest text-muted"><AlertOctagon size={12} className="text-red"/> Active Calls</div>
+              <div className="metric-label uppercase tracking-widest text-muted"><AlertOctagon size={12} className="text-red" /> Active Calls</div>
               <div className="metric-value font-mono text-red">{activeCount}</div>
             </div>
           </div>
@@ -109,7 +109,7 @@ export const SOSQueueView: React.FC = () => {
         <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-amber)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div className="metric-label uppercase tracking-widest text-muted"><Users size={12} className="text-amber"/> People at Risk</div>
+              <div className="metric-label uppercase tracking-widest text-muted"><Users size={12} className="text-amber" /> People at Risk</div>
               <div className="metric-value font-mono text-amber">{totalPeople}</div>
             </div>
           </div>
@@ -121,8 +121,8 @@ export const SOSQueueView: React.FC = () => {
         <div className="metric-widget" style={{ borderTop: '3px solid var(--accent-emerald)' }}>
           <div className="flex justify-between items-start">
             <div>
-              <div className="metric-label uppercase tracking-widest text-muted"><Radio size={12} className="text-emerald"/> Mesh Gateway Mode</div>
-              <div className="metric-value font-mono text-emerald text-xl mt-2">ESP-NOW</div>
+              <div className="metric-label uppercase tracking-widest text-muted"><Radio size={12} className="text-emerald" /> Mesh Gateway Mode</div>
+              <div className="metric-value font-mono text-emerald text-xl mt-2">ESP-MESH</div>
             </div>
           </div>
           <div className="metric-subtext">
@@ -167,7 +167,7 @@ export const SOSQueueView: React.FC = () => {
               const badgeColor =
                 isAlert ? 'bg-red text-white'
                   : sos.status === 'ACKNOWLEDGED' ? 'bg-amber text-white'
-                  : 'bg-emerald text-white';
+                    : 'bg-emerald text-white';
 
               return (
                 <div

@@ -12,6 +12,7 @@ import {
   Radio,
   RefreshCw,
   RotateCcw,
+  Route,
   ShieldAlert,
   ShieldCheck,
   TrendingDown,
@@ -72,11 +73,8 @@ export const NetworkAnalyticsView: React.FC = () => {
 
   const handleSimulateParentFailure = async () => {
     try {
-      await api.simulateEvent({
-        event_type: 'NODE_FAILURE',
-        target_id: selectedParentId,
-      });
-      showFeedback(`Simulated failure on ${selectedParentId}`);
+      await api.failSimulationParent({ parent_node_id: selectedParentId, auto_reheal: true });
+      showFeedback(`Simulated parent failure on ${selectedParentId}`);
       await loadData();
     } catch (err: any) {
       alert(err.message);
@@ -85,11 +83,8 @@ export const NetworkAnalyticsView: React.FC = () => {
 
   const handleToggleNodeOffline = async () => {
     try {
-      await api.simulateEvent({
-        event_type: 'TOGGLE_NODE_POWER',
-        target_id: selectedNodeOfflineId,
-      });
-      showFeedback(`Toggled power on ${selectedNodeOfflineId}`);
+      await api.takeSimulationNodeOffline(selectedNodeOfflineId);
+      showFeedback(`Took ${selectedNodeOfflineId} offline`);
       await loadData();
     } catch (err: any) {
       alert(err.message);
@@ -99,10 +94,7 @@ export const NetworkAnalyticsView: React.FC = () => {
   const handleSimulateGatewayFailure = async () => {
     if (!confirm('WARNING: Simulating Gateway failure will trigger a full mesh partition and force all nodes into ISOLATED mode. Proceed?')) return;
     try {
-      await api.simulateEvent({
-        event_type: 'GATEWAY_FAILURE',
-        target_id: 'GATEWAY',
-      });
+      await api.failSimulationGateway();
       showFeedback('Gateway crash simulated');
       await loadData();
     } catch (err: any) {
@@ -112,9 +104,7 @@ export const NetworkAnalyticsView: React.FC = () => {
 
   const handleRestoreFullNetwork = async () => {
     try {
-      await api.simulateEvent({
-        event_type: 'RESTORE_NETWORK',
-      });
+      await api.restoreSimulationNetwork();
       showFeedback('Full network restoration triggered');
       await loadData();
     } catch (err: any) {
@@ -125,14 +115,11 @@ export const NetworkAnalyticsView: React.FC = () => {
   const handleDegradeLink = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.simulateEvent({
-        event_type: 'DEGRADE_LINK',
-        target_id: degradeSrc,
-        details: {
-          destination_id: degradeDst,
-          packet_loss: degradeLoss,
-          latency_ms: degradeLatency,
-        },
+      await api.degradeSimulationLink({
+        source_node_id: degradeSrc,
+        target_node_id: degradeDst,
+        packet_loss_percent: degradeLoss,
+        latency_ms: degradeLatency,
       });
       showFeedback(`Link degraded: ${degradeSrc} -> ${degradeDst}`);
       await loadData();
@@ -337,18 +324,18 @@ export const NetworkAnalyticsView: React.FC = () => {
                     let iconColor = 'text-blue';
                     let bgColor = 'bg-blue/10';
 
-                    if (event.event_type === 'NODE_FAILURE' || event.event_type === 'GATEWAY_FAILURE') {
+                    if (event.event_type === 'NODE_FAILURE' || event.event_type === 'GATEWAY_FAILURE' || event.event_type === 'node.offline') {
                       Icon = Power; iconColor = 'text-red'; bgColor = 'bg-red/10';
-                    } else if (event.event_type === 'ROUTE_CHANGED') {
+                    } else if (event.event_type === 'ROUTE_CHANGED' || event.event_type === 'route.changed') {
                       Icon = Route; iconColor = 'text-emerald'; bgColor = 'bg-emerald/10';
                     } else if (event.event_type === 'DEGRADE_LINK') {
                       Icon = Wifi; iconColor = 'text-amber'; bgColor = 'bg-amber/10';
-                    } else if (event.event_type === 'RESTORE_NETWORK') {
+                    } else if (event.event_type === 'RESTORE_NETWORK' || event.event_type === 'node.online') {
                       Icon = ShieldCheck; iconColor = 'text-emerald'; bgColor = 'bg-emerald/10';
                     }
 
                     return (
-                      <div key={event.id || idx} className="flex gap-3 text-sm border-b border-subtle pb-3 last:border-0 last:pb-0">
+                      <div key={idx} className="flex gap-3 text-sm border-b border-subtle pb-3 last:border-0 last:pb-0">
                         <div className={`p-2 rounded-full shrink-0 h-8 w-8 flex items-center justify-center ${bgColor} ${iconColor}`}>
                           <Icon size={14} />
                         </div>
@@ -359,7 +346,7 @@ export const NetworkAnalyticsView: React.FC = () => {
                               {new Date(event.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </span>
                           </div>
-                          <div className="text-muted text-xs break-words">{event.description}</div>
+                          <div className="text-muted text-xs break-words">{event.message}</div>
                         </div>
                       </div>
                     );

@@ -3,7 +3,9 @@ import { api } from '../../api/client';
 import { AnalyticsView } from '../../views/AnalyticsView';
 import { AnnouncementsView } from '../../views/AnnouncementsView';
 import { AuditLogView } from '../../views/AuditLogView';
+import { CommunityView } from '../../views/CommunityView';
 import { DashboardView } from '../../views/DashboardView';
+import { HeatmapView } from '../../views/HeatmapView';
 import { IncidentsView } from '../../views/IncidentsView';
 import { NetworkAnalyticsView } from '../../views/NetworkAnalyticsView';
 import { NodesView } from '../../views/NodesView';
@@ -52,12 +54,16 @@ export const AppLayout: React.FC = () => {
         return <SOSQueueView />;
       case 'topology':
         return <TopologyView />;
+      case 'heatmap':
+        return <HeatmapView />;
       case 'nodes':
         return <NodesView />;
       case 'responders':
         return <RespondersView />;
       case 'people':
         return <PeopleView />;
+      case 'community':
+        return <CommunityView />;
       case 'resources':
         return <ResourcesView />;
       case 'announcements':
