@@ -35,7 +35,7 @@ class Node(Base):
     uptime_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     battery_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
     rssi_dbm: Mapped[float | None] = mapped_column(Float, nullable=True)
-    neighbour_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    hop_count: Mapped[int] = mapped_column("neighbour_count", Integer, nullable=False, default=1)
     packet_rx: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     packet_tx: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     packet_loss_percent: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)

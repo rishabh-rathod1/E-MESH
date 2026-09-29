@@ -26,6 +26,7 @@
 #include "peripheral_gps.h"
 #include "peripheral_ui.h"
 #include "comms.h"
+#include "esp_wifi.h"
 
 static const char *TAG = "MAIN";
 
@@ -149,10 +150,17 @@ void app_main(void)
                 gps_data_t gps;
                 bool has_gps = gps_get_data(&gps);
 
+                wifi_ap_record_t ap_info;
+                int rssi = 0;
+                if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+                    rssi = ap_info.rssi;
+                }
+
                 comms_send_heartbeat(
                     mesh_get_node_id(),
                     mesh_is_root(),
                     mesh_get_level(),
+                    rssi,
                     has_gps ? &gps : NULL
                 );
 

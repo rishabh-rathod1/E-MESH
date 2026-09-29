@@ -90,7 +90,7 @@ void comms_init(void)
 }
 
 bool comms_send_heartbeat(const char *node_id, bool is_root,
-                          int level, const gps_data_t *gps)
+                          int level, int rssi, const gps_data_t *gps)
 {
     char url[128];
     char json[JSON_BUF_SIZE];
@@ -104,7 +104,7 @@ bool comms_send_heartbeat(const char *node_id, bool is_root,
             "\"is_gateway\":%s,"
             "\"display_name\":\"%s\","
             "\"battery_level\":100.0,"
-            "\"signal_quality\":-55.0,"
+            "\"signal_quality\":%d.0,"
             "\"hop_count\":%d,"
             "\"position_x\":%.6f,"
             "\"position_y\":%.6f"
@@ -112,6 +112,7 @@ bool comms_send_heartbeat(const char *node_id, bool is_root,
             node_id,
             is_root ? "true" : "false",
             node_id,
+            rssi,
             level,
             gps->longitude,  /* position_x = longitude */
             gps->latitude    /* position_y = latitude  */
@@ -123,12 +124,13 @@ bool comms_send_heartbeat(const char *node_id, bool is_root,
             "\"is_gateway\":%s,"
             "\"display_name\":\"%s\","
             "\"battery_level\":100.0,"
-            "\"signal_quality\":-55.0,"
+            "\"signal_quality\":%d.0,"
             "\"hop_count\":%d"
             "}",
             node_id,
             is_root ? "true" : "false",
             node_id,
+            rssi,
             level
         );
     }

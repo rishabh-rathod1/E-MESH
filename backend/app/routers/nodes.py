@@ -96,6 +96,45 @@ async def get_topology_endpoint(
 ):
     nodes, _ = await list_nodes(db, page=1, page_size=200)
     links = await list_all_links(db)
+    
+    # Auto-generate visual links if none exist based on hop_count
+    if not links and len(nodes) > 1:
+        mock_links = []
+        import uuid
+        from app.core.enums import NodeLinkStatus
+        
+        by_hop = {}
+        for n in nodes:
+            hc = n.hop_count or 1
+            if hc not in by_hop:
+                by_hop[hc] = []
+            by_hop[hc].append(n)
+            
+        for hc in sorted(by_hop.keys()):
+            if hc <= 1:
+                continue
+            parents = by_hop.get(hc - 1, [])
+            if not parents:
+                parents = [p for p in nodes if (p.hop_count or 1) < hc]
+                
+            for child in by_hop[hc]:
+                parent = parents[child.node_id.__hash__() % len(parents)] if parents else None
+                if parent:
+                    mock_links.append(NodeLinkRead(
+                        id=str(uuid.uuid4()),
+                        source_node_id=child.node_id,
+                        target_node_id=parent.node_id,
+                        rssi_dbm=child.rssi_dbm,
+                        packet_loss_percent=child.packet_loss_percent,
+                        latency_ms=15.0,
+                        status=NodeLinkStatus.ACTIVE
+                    ))
+                    
+        return {
+            "nodes": [NodeRead.model_validate(n).model_dump() for n in nodes],
+            "links": [l.model_dump() for l in mock_links],
+        }
+
     return {
         "nodes": [NodeRead.model_validate(n).model_dump() for n in nodes],
         "links": [NodeLinkRead.model_validate(l).model_dump() for l in links],

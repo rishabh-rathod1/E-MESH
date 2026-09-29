@@ -194,12 +194,12 @@ export const NodesView: React.FC = () => {
                     <td className="font-semibold text-main">{node.name}</td>
                     <td>
                       <div className="flex items-center gap-1 font-mono text-xs text-emerald">
-                        <Battery size={12} /> {node.battery_level}%
+                        <Battery size={12} /> {node.battery_percent ?? 0}%
                       </div>
                     </td>
                     <td>
                       <div className="flex items-center gap-1 font-mono text-xs text-blue">
-                        <Signal size={12} /> -{100 - node.signal_quality} dBm
+                        <Signal size={12} /> {node.rssi_dbm ?? 0} dBm
                       </div>
                     </td>
                     <td className="font-mono text-xs text-muted">{node.hop_count} Hop{node.hop_count === 1 ? '' : 's'}</td>

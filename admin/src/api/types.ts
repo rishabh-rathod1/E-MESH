@@ -125,11 +125,12 @@ export interface MeshNode {
   node_id: string;
   name: string;
   status: NodeStatus;
-  battery_level: number;
-  signal_quality: number;
+  battery_percent?: number | null;
+  rssi_dbm?: number | null;
   hop_count: number;
   firmware_version?: string | null;
   last_seen?: string | null;
+  current_route?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -138,8 +139,8 @@ export interface MeshNodeLink {
   id: string;
   source_node_id: string;
   target_node_id: string;
-  rssi: number;
-  link_quality: number;
+  rssi_dbm?: number | null;
+  link_quality?: number;
   status: NodeLinkStatus;
   last_packet_at?: string | null;
 }

@@ -62,7 +62,7 @@ async def hardware_node_heartbeat(
             status="ONLINE",
             battery_level=node.battery_percent,
             signal_quality=node.rssi_dbm,
-            hop_count=node.neighbour_count,
+            hop_count=node.hop_count,
         )
     else:
         # Create new node registration (set initial heartbeat)
@@ -85,7 +85,7 @@ async def hardware_node_heartbeat(
             name=node.display_name or node.node_id,
             battery_level=node.battery_percent,
             signal_quality=node.rssi_dbm,
-            hop_count=node.neighbour_count,
+            hop_count=node.hop_count,
         )
 
     return NodeRead.model_validate(node)

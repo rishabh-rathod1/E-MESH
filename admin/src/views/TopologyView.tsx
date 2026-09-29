@@ -15,26 +15,35 @@ import {
   Zap,
 } from 'lucide-react';
 import { api } from '../api/client';
-import { SimulatedLink, SimulatedNode, SimulationTopology } from '../api/types';
+import { MeshNodeLink, MeshNode, TopologyData } from '../api/types';
 import { useMeshEvent } from '../api/ws';
 
 export const TopologyView: React.FC = () => {
-  const [topology, setTopology] = useState<SimulationTopology>({
+  const [topology, setTopology] = useState<{ nodes: MeshNode[]; links: MeshNodeLink[]; max_depth: number; root_id: string }>({
     root_id: 'GATEWAY',
     nodes: [],
     links: [],
     max_depth: 1,
   });
-  const [selectedNode, setSelectedNode] = useState<SimulatedNode | null>(null);
-  const [selectedLink, setSelectedLink] = useState<SimulatedLink | null>(null);
-  const [selectedRouteNodeId, setSelectedRouteNodeId] = useState<string>('EM-04');
+  const [selectedNode, setSelectedNode] = useState<MeshNode | null>(null);
+  const [selectedLink, setSelectedLink] = useState<MeshNodeLink | null>(null);
+  const [selectedRouteNodeId, setSelectedRouteNodeId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await api.getSimulationTopology();
-      setTopology(data);
+      const data = await api.getTopology();
+      const max_depth = data.nodes.length > 0 ? Math.max(...data.nodes.map(n => n.hop_count || 1)) : 1;
+      const rootNode = data.nodes.find(n => n.hop_count === 1) || data.nodes[0];
+      const root_id = rootNode ? rootNode.node_id : 'GATEWAY';
+      
+      setTopology({
+        nodes: data.nodes,
+        links: data.links,
+        max_depth,
+        root_id
+      });
       if (data.nodes.length > 0) {
         if (selectedNode) {
           const updated = data.nodes.find((n) => n.node_id === selectedNode.node_id);
@@ -65,9 +74,9 @@ export const TopologyView: React.FC = () => {
   const height = 520;
   const nodePositions = new Map<string, { x: number; y: number }>();
 
-  const layersMap: Record<number, SimulatedNode[]> = {};
+  const layersMap: Record<number, MeshNode[]> = {};
   topology.nodes.forEach((node) => {
-    const layer = node.layer || 1;
+    const layer = node.hop_count || 1;
     if (!layersMap[layer]) layersMap[layer] = [];
     layersMap[layer].push(node);
   });
@@ -88,7 +97,7 @@ export const TopologyView: React.FC = () => {
   });
 
   const targetRouteNode = topology.nodes.find((n) => n.node_id === selectedRouteNodeId);
-  const activeRoutePath = targetRouteNode ? targetRouteNode.current_route : [];
+  const activeRoutePath = targetRouteNode?.current_route ? targetRouteNode.current_route.split(',') : [];
 
   return (
     <div className="space-y-4">
@@ -116,7 +125,7 @@ export const TopologyView: React.FC = () => {
         </div>
       </div>
 
-      {/* Illustrative Route Path Tracer */}
+      {/* Route Path Tracer */}
       <div className="widget" style={{ borderLeft: '3px solid var(--accent-emerald)', background: 'rgba(136, 179, 148, 0.04)' }}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -125,7 +134,7 @@ export const TopologyView: React.FC = () => {
             </div>
             <div>
               <div className="text-xs font-bold uppercase tracking-widest text-muted font-mono">
-                Active Multi-Hop Route Simulation
+                Active Multi-Hop Route
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <span className="badge badge-outline">Client App</span>
@@ -156,7 +165,7 @@ export const TopologyView: React.FC = () => {
             >
               {topology.nodes.map((n) => (
                 <option key={n.node_id} value={n.node_id}>
-                  {n.node_id} (Layer {n.layer})
+                  {n.node_id} (Layer {n.hop_count || 1})
                 </option>
               ))}
             </select>
@@ -332,11 +341,11 @@ export const TopologyView: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Layers size={14}/> <span className="text-xs font-semibold">Tree Layer</span></div>
-                    <div className="text-xl font-mono text-main">{selectedNode.layer}</div>
+                    <div className="text-xl font-mono text-main">{selectedNode.hop_count || 1}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Route size={14}/> <span className="text-xs font-semibold">Hop Count (Depth)</span></div>
-                    <div className="text-xl font-mono text-main">{selectedNode.layer}</div>
+                    <div className="text-xl font-mono text-main">{selectedNode.hop_count || 1}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Battery size={14}/> <span className="text-xs font-semibold">Battery</span></div>
@@ -349,14 +358,14 @@ export const TopologyView: React.FC = () => {
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-subtle">
-                  <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Simulated Routing Path</div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Active Routing Path</div>
                   <div className="flex flex-wrap gap-1 p-2 bg-surface-elevated border border-subtle rounded-sm">
-                    {selectedNode.current_route.map((n, i) => (
+                    {selectedNode.current_route ? selectedNode.current_route.split(',').map((n, i, arr) => (
                       <React.Fragment key={i}>
                         <span className="font-mono text-xs">{n}</span>
-                        {i < selectedNode.current_route.length - 1 && <ChevronRight size={12} className="text-dim" />}
+                        {i < arr.length - 1 && <ChevronRight size={12} className="text-dim" />}
                       </React.Fragment>
-                    ))}
+                    )) : <span className="font-mono text-xs text-muted">No route</span>}
                   </div>
                 </div>
               </div>
@@ -385,11 +394,11 @@ export const TopologyView: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Signal size={14}/> <span className="text-xs font-semibold">Signal (RSSI)</span></div>
-                    <div className="text-xl font-mono text-main">{selectedLink.rssi_dbm} <span className="text-xs">dBm</span></div>
+                    <div className="text-xl font-mono text-main">{selectedLink.rssi_dbm ?? 'N/A'} <span className="text-xs">dBm</span></div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
-                    <div className="flex items-center gap-2 text-muted mb-2"><Zap size={14}/> <span className="text-xs font-semibold">Packet Loss</span></div>
-                    <div className="text-xl font-mono text-main">{selectedLink.packet_loss_percent} <span className="text-xs">%</span></div>
+                    <div className="flex items-center gap-2 text-muted mb-2"><Zap size={14}/> <span className="text-xs font-semibold">Link Quality</span></div>
+                    <div className="text-xl font-mono text-main">{selectedLink.link_quality ?? 100} <span className="text-xs">%</span></div>
                   </div>
                 </div>
                </div>
@@ -400,7 +409,7 @@ export const TopologyView: React.FC = () => {
                 <Info size={32} className="opacity-20" />
                 <div>
                   <div className="font-bold text-sm text-main">Interactive Map</div>
-                  <div className="text-xs mt-1">Select any node or link segment on the topology map to inspect its real-time simulated telemetry.</div>
+                  <div className="text-xs mt-1">Select any node or link segment on the topology map to inspect its real-time telemetry.</div>
                 </div>
               </div>
             )}

@@ -32,7 +32,7 @@ void comms_init(void);
  * @return true if the server acknowledged the request.
  */
 bool comms_send_heartbeat(const char *node_id, bool is_root,
-                          int level, const gps_data_t *gps);
+                          int level, int rssi, const gps_data_t *gps);
 
 /**
  * @brief Send an SOS alert to the backend.

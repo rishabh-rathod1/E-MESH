@@ -39,7 +39,7 @@ class NodeRead(EMeshBaseModel):
     uptime_seconds: int
     battery_percent: Optional[float] = None
     rssi_dbm: Optional[float] = None
-    neighbour_count: int
+    hop_count: int
     packet_rx: int
     packet_tx: int
     packet_loss_percent: float
@@ -62,10 +62,6 @@ class NodeRead(EMeshBaseModel):
     @property
     def signal_quality(self) -> Optional[float]:
         return self.rssi_dbm
-
-    @property
-    def hop_count(self) -> int:
-        return 1
 
 
 class NodeUpdate(EMeshBaseModel):
