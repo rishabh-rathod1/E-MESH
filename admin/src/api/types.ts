@@ -131,6 +131,20 @@ export interface MeshNode {
   firmware_version?: string | null;
   last_seen?: string | null;
   current_route?: string | null;
+  has_gps?: boolean;
+  gps_lat?: number | null;
+  gps_lon?: number | null;
+  gps_alt_m?: number | null;
+  gps_sats?: number | null;
+  // Sensor telemetry (null when hardware not present)
+  temperature_c?: number | null;
+  pressure_hpa?: number | null;
+  accel_x?: number | null;
+  accel_y?: number | null;
+  accel_z?: number | null;
+  gyro_x?: number | null;
+  gyro_y?: number | null;
+  gyro_z?: number | null;
   created_at: string;
   updated_at: string;
 }

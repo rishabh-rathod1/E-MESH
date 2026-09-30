@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Battery,
   Cpu,
@@ -10,7 +10,8 @@ import {
   X,
   Search,
   MoreVertical,
-  Activity
+  Activity,
+  AlertTriangle,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { MeshNode } from '../api/types';
@@ -30,21 +31,30 @@ export const NodesView: React.FC = () => {
   const [status, setStatus] = useState('ONLINE');
   const [actionLoading, setActionLoading] = useState(false);
 
-  const loadNodes = async () => {
-    setLoading(true);
+  const [clearLoading, setClearLoading] = useState(false);
+  const [filter, setFilter] = useState('');
+
+  const loadNodes = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const resp = await api.getNodes({ page_size: 100 });
       setNodes(resp.data);
     } catch (err) {
       console.error('Failed to load nodes', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadNodes();
   }, []);
+
+  /* Initial load */
+  useEffect(() => { loadNodes(); }, [loadNodes]);
+
+  /* Auto-refresh every second (silent — no spinner) */
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    intervalRef.current = setInterval(() => loadNodes(true), 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [loadNodes]);
 
   const resetForm = () => {
     setEditNode(null);
@@ -103,9 +113,24 @@ export const NodesView: React.FC = () => {
     if (!confirm(`Are you sure you want to decommission node "${name}"?`)) return;
     try {
       await api.deleteNode(id);
-      await loadNodes();
+      setNodes(prev => prev.filter(n => n.id !== id));
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (nodes.length === 0) return;
+    if (!confirm(`This will permanently remove ALL ${nodes.length} registered node(s). Are you sure?`)) return;
+    setClearLoading(true);
+    try {
+      await Promise.all(nodes.map(n => api.deleteNode(n.id)));
+      setNodes([]);
+    } catch (err: any) {
+      alert('Some nodes could not be deleted: ' + err.message);
+      await loadNodes();
+    } finally {
+      setClearLoading(false);
     }
   };
 
@@ -139,11 +164,29 @@ export const NodesView: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input type="text" placeholder="Filter devices..." className="form-input pl-8" style={{ width: '200px' }} />
+            <input
+              type="text"
+              placeholder="Filter devices..."
+              className="form-input pl-8"
+              style={{ width: '200px' }}
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+            />
           </div>
-          <button onClick={loadNodes} disabled={loading} className="btn">
+          <button onClick={() => loadNodes()} disabled={loading} className="btn" title="Refresh now">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
+          {nodes.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              disabled={clearLoading}
+              className="btn hover:text-red hover:border-red/40"
+              title="Remove all nodes"
+            >
+              <AlertTriangle size={14} />
+              {clearLoading ? 'Clearing...' : 'Clear All'}
+            </button>
+          )}
           <button onClick={openAdd} className="btn btn-primary">
             <Plus size={14} /> Register Node
           </button>
@@ -177,7 +220,13 @@ export const NodesView: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              nodes.map((node) => {
+              nodes
+                .filter(n =>
+                  !filter ||
+                  n.node_id.toLowerCase().includes(filter.toLowerCase()) ||
+                  (n.name || '').toLowerCase().includes(filter.toLowerCase())
+                )
+                .map((node) => {
                 const isOnline = node.status === 'ONLINE';
                 const isDegraded = node.status === 'DEGRADED';
                 const statusColor = isOnline ? 'emerald' : isDegraded ? 'amber' : 'red';

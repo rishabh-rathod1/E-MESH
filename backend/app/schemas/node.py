@@ -22,6 +22,20 @@ class NodeCreate(EMeshBaseModel):
     hop_count: Optional[int] = None
     position_x: Optional[float] = None
     position_y: Optional[float] = None
+    has_gps: Optional[bool] = False
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    gps_alt_m: Optional[float] = None
+    gps_sats: Optional[int] = None
+    # Sensor fields (all optional — only sent when hardware is present)
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None
 
     @model_validator(mode="after")
     def populate_aliases(self) -> "NodeCreate":
@@ -48,6 +62,20 @@ class NodeRead(EMeshBaseModel):
     last_heartbeat: Optional[datetime] = None
     position_x: Optional[float] = None
     position_y: Optional[float] = None
+    has_gps: bool = False
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    gps_alt_m: Optional[float] = None
+    gps_sats: Optional[int] = None
+    # Sensor telemetry
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -77,6 +105,20 @@ class NodeUpdate(EMeshBaseModel):
     hop_count: Optional[int] = None
     position_x: Optional[float] = None
     position_y: Optional[float] = None
+    has_gps: Optional[bool] = None
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    gps_alt_m: Optional[float] = None
+    gps_sats: Optional[int] = None
+    # Sensor fields
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None
 
     @model_validator(mode="after")
     def sync_aliases(self) -> "NodeUpdate":

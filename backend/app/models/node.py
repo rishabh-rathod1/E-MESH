@@ -6,7 +6,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, Float, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import NodeStatus
@@ -47,6 +47,20 @@ class Node(Base):
     last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     position_x: Mapped[float | None] = mapped_column(Float, nullable=True, comment="Topology visualization X")
     position_y: Mapped[float | None] = mapped_column(Float, nullable=True, comment="Topology visualization Y")
+    has_gps: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, comment="True if GPS hardware is connected")
+    gps_lat: Mapped[float | None] = mapped_column(Float, nullable=True, comment="GPS latitude (decimal degrees)")
+    gps_lon: Mapped[float | None] = mapped_column(Float, nullable=True, comment="GPS longitude (decimal degrees)")
+    gps_alt_m: Mapped[float | None] = mapped_column(Float, nullable=True, comment="GPS altitude (metres)")
+    gps_sats: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="GPS satellites in use")
+    # ── Sensor telemetry (nullable — only populated when sensors are present) ──
+    temperature_c: Mapped[float | None] = mapped_column(Float, nullable=True, comment="BMP280 temperature (°C)")
+    pressure_hpa: Mapped[float | None] = mapped_column(Float, nullable=True, comment="BMP280 pressure (hPa)")
+    accel_x: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MPU6050 accelerometer X raw")
+    accel_y: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MPU6050 accelerometer Y raw")
+    accel_z: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MPU6050 accelerometer Z raw")
+    gyro_x: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MPU6050 gyroscope X raw")
+    gyro_y: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MPU6050 gyroscope Y raw")
+    gyro_z: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="MPU6050 gyroscope Z raw")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_utcnow
     )

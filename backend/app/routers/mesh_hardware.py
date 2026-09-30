@@ -52,6 +52,19 @@ async def hardware_node_heartbeat(
             hop_count=body.hop_count,
             position_x=body.position_x,
             position_y=body.position_y,
+            has_gps=body.has_gps,
+            gps_lat=body.gps_lat,
+            gps_lon=body.gps_lon,
+            gps_alt_m=body.gps_alt_m,
+            gps_sats=body.gps_sats,
+            temperature_c=body.temperature_c,
+            pressure_hpa=body.pressure_hpa,
+            accel_x=body.accel_x,
+            accel_y=body.accel_y,
+            accel_z=body.accel_z,
+            gyro_x=body.gyro_x,
+            gyro_y=body.gyro_y,
+            gyro_z=body.gyro_z,
             status=NodeStatus.ONLINE
         )
         node = await update_node(db, existing_node.id, update_data)
@@ -63,6 +76,19 @@ async def hardware_node_heartbeat(
             battery_level=node.battery_percent,
             signal_quality=node.rssi_dbm,
             hop_count=node.hop_count,
+            has_gps=node.has_gps,
+            gps_lat=node.gps_lat,
+            gps_lon=node.gps_lon,
+            gps_alt_m=node.gps_alt_m,
+            gps_sats=node.gps_sats,
+            temperature_c=node.temperature_c,
+            pressure_hpa=node.pressure_hpa,
+            accel_x=node.accel_x,
+            accel_y=node.accel_y,
+            accel_z=node.accel_z,
+            gyro_x=node.gyro_x,
+            gyro_y=node.gyro_y,
+            gyro_z=node.gyro_z,
         )
     else:
         # Create new node registration (set initial heartbeat)
@@ -76,6 +102,19 @@ async def hardware_node_heartbeat(
             rssi_dbm=body.signal_quality,
             position_x=body.position_x,
             position_y=body.position_y,
+            has_gps=body.has_gps,
+            gps_lat=body.gps_lat,
+            gps_lon=body.gps_lon,
+            gps_alt_m=body.gps_alt_m,
+            gps_sats=body.gps_sats,
+            temperature_c=body.temperature_c,
+            pressure_hpa=body.pressure_hpa,
+            accel_x=body.accel_x,
+            accel_y=body.accel_y,
+            accel_z=body.accel_z,
+            gyro_x=body.gyro_x,
+            gyro_y=body.gyro_y,
+            gyro_z=body.gyro_z,
             status=NodeStatus.ONLINE
         )
         node = await update_node(db, node.id, update_data)
@@ -86,6 +125,19 @@ async def hardware_node_heartbeat(
             battery_level=node.battery_percent,
             signal_quality=node.rssi_dbm,
             hop_count=node.hop_count,
+            has_gps=node.has_gps,
+            gps_lat=node.gps_lat,
+            gps_lon=node.gps_lon,
+            gps_alt_m=node.gps_alt_m,
+            gps_sats=node.gps_sats,
+            temperature_c=node.temperature_c,
+            pressure_hpa=node.pressure_hpa,
+            accel_x=node.accel_x,
+            accel_y=node.accel_y,
+            accel_z=node.accel_z,
+            gyro_x=node.gyro_x,
+            gyro_y=node.gyro_y,
+            gyro_z=node.gyro_z,
         )
 
     return NodeRead.model_validate(node)

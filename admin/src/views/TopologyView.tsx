@@ -7,6 +7,7 @@ import {
   Info,
   Layers,
   Network,
+  MapPin,
   Radio,
   RefreshCw,
   Route,
@@ -333,18 +334,25 @@ export const TopologyView: React.FC = () => {
                     <div className="text-xs text-muted uppercase tracking-widest font-bold mb-1">Hardware ID</div>
                     <div className="text-lg font-mono text-main font-bold">{selectedNode.node_id}</div>
                   </div>
-                  <span className={`badge ${selectedNode.status === 'ONLINE' ? 'bg-emerald text-white' : 'bg-red text-white'}`}>
-                    {selectedNode.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`badge ${selectedNode.status === 'ONLINE' ? 'bg-emerald text-white' : 'bg-red text-white'}`}>
+                      {selectedNode.status}
+                    </span>
+                    {selectedNode.has_gps && (
+                      <span className="badge bg-blue text-white text-[10px] uppercase">
+                        GPS Connected
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Layers size={14}/> <span className="text-xs font-semibold">Tree Layer</span></div>
                     <div className="text-xl font-mono text-main">{selectedNode.hop_count || 1}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
-                    <div className="flex items-center gap-2 text-muted mb-2"><Route size={14}/> <span className="text-xs font-semibold">Hop Count (Depth)</span></div>
+                    <div className="flex items-center gap-2 text-muted mb-2"><Route size={14}/> <span className="text-xs font-semibold">Hop Count</span></div>
                     <div className="text-xl font-mono text-main">{selectedNode.hop_count || 1}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
@@ -357,7 +365,90 @@ export const TopologyView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-subtle">
+                {/* GPS Data */}
+                {selectedNode.has_gps && (
+                  <div className="mb-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-1">
+                      <MapPin size={12} className="text-emerald" /> GPS (M8N)
+                    </div>
+                    {selectedNode.gps_lat != null ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2 border border-subtle rounded-sm bg-surface-elevated col-span-2">
+                          <div className="text-xs text-muted mb-1">Coordinates</div>
+                          <div className="text-sm font-mono text-emerald font-bold">
+                            {selectedNode.gps_lat.toFixed(6)}°, {selectedNode.gps_lon?.toFixed(6)}°
+                          </div>
+                        </div>
+                        <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                          <div className="text-xs text-muted mb-1">Altitude</div>
+                          <div className="text-sm font-mono text-main">
+                            {selectedNode.gps_alt_m != null ? `${selectedNode.gps_alt_m.toFixed(1)} m` : 'N/A'}
+                          </div>
+                        </div>
+                        <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                          <div className="text-xs text-muted mb-1">Satellites</div>
+                          <div className="text-sm font-mono text-main">
+                            {selectedNode.gps_sats ?? 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted italic p-2 border border-subtle rounded-sm bg-surface-elevated">
+                        GPS connected — waiting for satellite fix…
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* BMP280 Environmental Data */}
+                {(selectedNode.temperature_c != null || selectedNode.pressure_hpa != null) && (
+                  <div className="mb-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-1">
+                      <Zap size={12} className="text-amber" /> Environment (BMP280)
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                        <div className="text-xs text-muted mb-1">Temperature</div>
+                        <div className="text-base font-mono text-amber font-bold">
+                          {selectedNode.temperature_c != null ? `${selectedNode.temperature_c.toFixed(1)} °C` : 'N/A'}
+                        </div>
+                      </div>
+                      <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                        <div className="text-xs text-muted mb-1">Pressure</div>
+                        <div className="text-base font-mono text-blue font-bold">
+                          {selectedNode.pressure_hpa != null ? `${selectedNode.pressure_hpa.toFixed(1)} hPa` : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MPU6050 IMU Data */}
+                {(selectedNode.accel_x != null) && (
+                  <div className="mb-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-1">
+                      <Radio size={12} className="text-primary" /> IMU (MPU6050) — Raw
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 mb-1">
+                      {[['Ax', selectedNode.accel_x], ['Ay', selectedNode.accel_y], ['Az', selectedNode.accel_z]].map(([label, val]) => (
+                        <div key={String(label)} className="p-1.5 border border-subtle rounded-sm bg-surface-elevated text-center">
+                          <div className="text-xs text-muted">{label}</div>
+                          <div className="text-xs font-mono text-primary">{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[['Gx', selectedNode.gyro_x], ['Gy', selectedNode.gyro_y], ['Gz', selectedNode.gyro_z]].map(([label, val]) => (
+                        <div key={String(label)} className="p-1.5 border border-subtle rounded-sm bg-surface-elevated text-center">
+                          <div className="text-xs text-muted">{label}</div>
+                          <div className="text-xs font-mono text-emerald">{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-auto pt-3 border-t border-subtle">
                   <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Active Routing Path</div>
                   <div className="flex flex-wrap gap-1 p-2 bg-surface-elevated border border-subtle rounded-sm">
                     {selectedNode.current_route ? selectedNode.current_route.split(',').map((n, i, arr) => (
