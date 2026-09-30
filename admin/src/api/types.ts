@@ -129,7 +129,7 @@ export interface MeshNode {
   rssi_dbm?: number | null;
   hop_count: number;
   firmware_version?: string | null;
-  last_seen?: string | null;
+  last_heartbeat?: string | null;
   current_route?: string | null;
   has_gps?: boolean;
   gps_lat?: number | null;

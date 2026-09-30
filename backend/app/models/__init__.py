@@ -14,6 +14,7 @@ from app.models.sos import SOS
 from app.models.system_event import SystemEvent
 from app.models.user import User
 from app.models.user_location import UserLocation
+from app.models.node_telemetry import NodeTelemetry
 
 __all__ = [
     "User",
@@ -29,4 +30,5 @@ __all__ = [
     "Resource",
     "AuditLog",
     "SystemEvent",
+    "NodeTelemetry",
 ]

@@ -144,8 +144,8 @@ export const NodesView: React.FC = () => {
     setNodeId(n.node_id);
     setNodeName(n.name);
     setStatus(n.status);
-    setBatteryLevel(n.battery_level);
-    setSignalQuality(n.signal_quality);
+    setBatteryLevel(n.battery_percent ?? 100);
+    setSignalQuality(n.rssi_dbm ?? 0);
     setHopCount(n.hop_count);
     setShowDrawer(true);
   };
@@ -254,7 +254,7 @@ export const NodesView: React.FC = () => {
                     <td className="font-mono text-xs text-muted">{node.hop_count} Hop{node.hop_count === 1 ? '' : 's'}</td>
                     <td className="font-mono text-xs text-dim">{node.firmware_version || 'v1.4.0'}</td>
                     <td className="font-mono text-xs text-muted">
-                      {node.last_seen ? new Date(node.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live'}
+                      {node.last_heartbeat ? new Date(node.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live'}
                     </td>
                     <td className="actions" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">

@@ -140,3 +140,18 @@ class NodeLinkRead(EMeshBaseModel):
     latency_ms: Optional[float] = None
     status: str
     last_seen: Optional[datetime] = None
+
+
+class NodeTelemetryRead(EMeshBaseModel):
+    id: str
+    node_id: str
+    timestamp: datetime
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    imu_jerk: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None

@@ -10,8 +10,10 @@ from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+import math
 
 from app.core.dependencies import get_db
+from app.models.node_telemetry import NodeTelemetry
 from app.core.enums import NodeStatus, UserRole
 from app.core.ws_manager import emit_event
 from app.schemas.events import EventType
@@ -41,6 +43,13 @@ async def hardware_node_heartbeat(
     No JWT required. Upserts the node record based on node_id.
     """
     existing_node = await get_node_by_node_id(db, body.node_id)
+    
+    imu_jerk = 0.0
+    if existing_node and existing_node.accel_x is not None and body.accel_x is not None:
+        dx = body.accel_x - existing_node.accel_x
+        dy = body.accel_y - existing_node.accel_y
+        dz = body.accel_z - existing_node.accel_z
+        imu_jerk = math.sqrt(dx**2 + dy**2 + dz**2) * 5.0
 
     if existing_node:
         # Update telemetry + last_heartbeat timestamp
@@ -139,6 +148,22 @@ async def hardware_node_heartbeat(
             gyro_y=node.gyro_y,
             gyro_z=node.gyro_z,
         )
+
+    # Insert historical telemetry
+    telemetry = NodeTelemetry(
+        node_id=body.node_id,
+        temperature_c=body.temperature_c,
+        pressure_hpa=body.pressure_hpa,
+        imu_jerk=imu_jerk,
+        accel_x=body.accel_x,
+        accel_y=body.accel_y,
+        accel_z=body.accel_z,
+        gyro_x=body.gyro_x,
+        gyro_y=body.gyro_y,
+        gyro_z=body.gyro_z,
+    )
+    db.add(telemetry)
+    await db.commit()
 
     return NodeRead.model_validate(node)
 

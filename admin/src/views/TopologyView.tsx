@@ -18,6 +18,7 @@ import {
 import { api } from '../api/client';
 import { MeshNodeLink, MeshNode, TopologyData } from '../api/types';
 import { useMeshEvent } from '../api/ws';
+import { NodeTelemetryChart } from '../components/NodeTelemetryChart';
 
 export const TopologyView: React.FC = () => {
   const [topology, setTopology] = useState<{ nodes: MeshNode[]; links: MeshNodeLink[]; max_depth: number; root_id: string }>({
@@ -448,6 +449,9 @@ export const TopologyView: React.FC = () => {
                   </div>
                 )}
 
+                {/* Historical Telemetry Charts */}
+                <NodeTelemetryChart nodeId={selectedNode.id} />
+
                 <div className="mt-auto pt-3 border-t border-subtle">
                   <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Active Routing Path</div>
                   <div className="flex flex-wrap gap-1 p-2 bg-surface-elevated border border-subtle rounded-sm">
@@ -477,7 +481,7 @@ export const TopologyView: React.FC = () => {
                     <Radio size={14} className="text-muted" />
                     <span className="text-main">{selectedLink.target_node_id}</span>
                   </div>
-                  <span className={`badge ${selectedLink.status === 'UP' ? 'badge-outline text-emerald' : 'badge-outline text-red'}`}>
+                  <span className={`badge ${selectedLink.status === 'ACTIVE' ? 'badge-outline text-emerald' : 'badge-outline text-red'}`}>
                     {selectedLink.status}
                   </span>
                 </div>
