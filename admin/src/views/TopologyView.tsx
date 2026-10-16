@@ -192,14 +192,6 @@ export const TopologyView: React.FC = () => {
 
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full relative z-10" style={{ minHeight: '560px' }}>
               <defs>
-                <linearGradient id="linkActive" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="var(--border-strong)" />
-                  <stop offset="100%" stopColor="var(--border-strong)" />
-                </linearGradient>
-                <linearGradient id="linkRoute" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="var(--accent-emerald)" />
-                  <stop offset="100%" stopColor="var(--accent-emerald)" />
-                </linearGradient>
               </defs>
 
               {/* Render Links */}
@@ -215,8 +207,8 @@ export const TopologyView: React.FC = () => {
                 const isDown = link.status === 'DOWN';
                 const isDegraded = link.status === 'DEGRADED';
 
-                let strokeColor = 'url(#linkActive)';
-                if (isRouteHighlighted) strokeColor = 'url(#linkRoute)';
+                let strokeColor = 'var(--border-strong)';
+                if (isRouteHighlighted) strokeColor = 'var(--accent-emerald)';
                 else if (isDown) strokeColor = 'var(--accent-red)';
                 else if (isDegraded) strokeColor = 'var(--accent-amber)';
 
