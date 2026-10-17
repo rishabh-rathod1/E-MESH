@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
 
         <div className="hidden md:flex items-center gap-2 text-xs font-mono text-muted">
           <Radio size={12} className="text-blue" />
-          <span>FREQ: 2.4 GHz (ESP-NOW)</span>
+          <span>FREQ: 2.4 GHz (ESP-MESH)</span>
         </div>
       </div>
 

@@ -9,19 +9,21 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.core.enums import NodeStatus, UserRole
 from app.core.ws_manager import emit_event
 from app.schemas.events import EventType
-from app.schemas.node import NodeCreate, NodeRead, NodeUpdate
+from app.schemas.node import NodeCreate, NodeLinkRead, NodeRead, NodeUpdate
 from app.schemas.sos import SOSCreate, SOSRead
-from app.services.node_service import create_node, get_node_by_node_id, update_node
+from app.services.node_service import create_node, get_node_by_node_id, update_node, upsert_node_link
 from app.services.sos_service import create_sos
 from app.services.network_event_service import (
     emit_node_online,
     emit_node_updated,
+    emit_topology_updated,
 )
 
 router = APIRouter(prefix="/mesh", tags=["Mesh Hardware"])
@@ -74,6 +76,7 @@ async def hardware_node_heartbeat(
         update_data = NodeUpdate(
             battery_percent=body.battery_level,
             rssi_dbm=body.signal_quality,
+            hop_count=body.hop_count,     # layer depth from root — saved as neighbour_count
             position_x=body.position_x,
             position_y=body.position_y,
             status=NodeStatus.ONLINE
@@ -141,3 +144,53 @@ async def hardware_sos_trigger(
     )
 
     return SOSRead.model_validate(sos)
+
+
+class HardwareLinkReport(BaseModel):
+    """Body for POST /mesh/links — sent by ESP32 firmware to report a peer link."""
+    source_node_id: str
+    target_node_id: str
+    rssi_dbm: float | None = None
+    packet_loss_percent: float = 0.0
+    latency_ms: float | None = None
+
+
+@router.post("/links", response_model=NodeLinkRead, status_code=201, summary="Hardware link report (upsert)")
+async def hardware_link_report(
+    request: Request,
+    body: HardwareLinkReport,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """
+    Called by ESP32 firmware to report telemetry for a peer-to-peer RF link.
+    No JWT required. Upserts a NodeLink record between the two nodes.
+    Nodes must already be registered via POST /mesh/nodes first.
+    """
+    src_node = await get_node_by_node_id(db, body.source_node_id)
+    tgt_node = await get_node_by_node_id(db, body.target_node_id)
+
+    if not src_node or not tgt_node:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"One or both nodes not found: {body.source_node_id}, {body.target_node_id}"
+        )
+
+    link = await upsert_node_link(
+        db,
+        source_db_id=src_node.id,
+        target_db_id=tgt_node.id,
+        rssi_dbm=body.rssi_dbm,
+        packet_loss_percent=body.packet_loss_percent,
+        latency_ms=body.latency_ms,
+    )
+    await db.commit()
+
+    # Emit topology updated so admin UI refreshes the map
+    emit_topology_updated(
+        total_nodes=0,  # will be refreshed by client fetch
+        online_nodes=0,
+        links_count=0,
+    )
+
+    return NodeLinkRead.model_validate(link)

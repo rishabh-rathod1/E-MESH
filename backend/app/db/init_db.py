@@ -29,7 +29,7 @@ async def create_tables() -> None:
 
 
 async def seed_admin_user(session: AsyncSession) -> None:
-    """Ensure the bootstrap ADMIN user exists."""
+    """Ensure the bootstrap ADMIN user exists and is active."""
     from app.models.user import User
 
     result = await session.execute(
@@ -37,7 +37,14 @@ async def seed_admin_user(session: AsyncSession) -> None:
     )
     existing = result.scalar_one_or_none()
     if existing:
-        logger.info("Admin user already exists — skipping seed.")
+        # Ensure existing admin is active and has ADMIN role
+        if not existing.is_active or existing.role != UserRole.ADMIN:
+            existing.is_active = True
+            existing.role = UserRole.ADMIN
+            await session.commit()
+            logger.info("Admin user role/active state restored.")
+        else:
+            logger.info("Admin user already exists — active.")
         return
 
     admin = User(

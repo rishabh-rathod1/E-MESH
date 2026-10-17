@@ -4,6 +4,8 @@ import {
   Announcement,
   AuditLog,
   CommunityMessage,
+  HardwareLink,
+  HardwareTopology,
   HeatmapResponse,
   Incident,
   LocationUser,
@@ -241,8 +243,21 @@ class ApiClient {
     return this.request<PaginatedResponse<MeshNode>>(`/nodes?${qs.toString()}`);
   }
 
-  public async getTopology(): Promise<TopologyData> {
-    return this.request<TopologyData>('/nodes/topology');
+  public async getTopology(): Promise<HardwareTopology> {
+    return this.request<HardwareTopology>('/nodes/topology');
+  }
+
+  public async reportNodeLink(payload: {
+    source_node_id: string;
+    target_node_id: string;
+    rssi_dbm?: number;
+    packet_loss_percent?: number;
+    latency_ms?: number;
+  }): Promise<HardwareLink> {
+    return this.request<HardwareLink>('/mesh/links', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
   public async createNode(payload: {

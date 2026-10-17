@@ -63,9 +63,8 @@ class NodeRead(EMeshBaseModel):
     def signal_quality(self) -> Optional[float]:
         return self.rssi_dbm
 
-    @property
-    def hop_count(self) -> int:
-        return 1
+    # NOTE: hop_count is intentionally NOT a property here;
+    # it is stored in `neighbour_count` on the DB model.
 
 
 class NodeUpdate(EMeshBaseModel):
@@ -78,7 +77,8 @@ class NodeUpdate(EMeshBaseModel):
     signal_quality: Optional[float] = None
     packet_loss_percent: Optional[float] = Field(None, ge=0.0, le=100.0)
     queue_depth: Optional[int] = Field(None, ge=0)
-    hop_count: Optional[int] = None
+    neighbour_count: Optional[int] = Field(None, ge=0)   # stores hop depth from root
+    hop_count: Optional[int] = None                       # alias: firmware reports this
     position_x: Optional[float] = None
     position_y: Optional[float] = None
 
@@ -90,6 +90,10 @@ class NodeUpdate(EMeshBaseModel):
             self.battery_percent = self.battery_level
         if self.signal_quality is not None and self.rssi_dbm is None:
             self.rssi_dbm = self.signal_quality
+        # hop_count from ESP-WIFI-MESH is the layer depth from root (1 = gateway).
+        # We store it in neighbour_count since that field exists on the Node model.
+        if self.hop_count is not None and self.neighbour_count is None:
+            self.neighbour_count = self.hop_count
         return self
 
 

@@ -346,3 +346,49 @@ export interface LocationUser {
   accuracy: number | null;
   updated_at: string;
 }
+
+// ── Real Hardware Topology types ──────────────────────────────────────────────
+// Returned by GET /api/v1/nodes/topology
+
+export interface HardwareNode {
+  id: string;
+  node_id: string;
+  display_name: string | null;
+  status: NodeStatus;
+  is_gateway: boolean;
+  uptime_seconds: number;
+  battery_percent: number | null;
+  rssi_dbm: number | null;
+  neighbour_count: number;
+  packet_rx: number;
+  packet_tx: number;
+  packet_loss_percent: number;
+  queue_depth: number;
+  current_route: string[]; // enriched by backend: parsed from JSON
+  last_heartbeat: string | null;
+  position_x: number | null;
+  position_y: number | null;
+  created_at: string;
+  updated_at: string;
+  // enriched by topology endpoint
+  layer: number;
+}
+
+export interface HardwareLink {
+  id: string;
+  source_node_id: string; // enriched to human-readable node_id
+  target_node_id: string; // enriched to human-readable node_id
+  rssi_dbm: number | null;
+  packet_loss_percent: number;
+  latency_ms: number | null;
+  status: NodeLinkStatus | string;
+  last_seen: string | null;
+}
+
+export interface HardwareTopology {
+  root_id: string;
+  max_depth: number;
+  nodes: HardwareNode[];
+  links: HardwareLink[];
+}
+

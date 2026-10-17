@@ -94,3 +94,54 @@ async def get_links_for_node(session: AsyncSession, node_db_id: str) -> List[Nod
 async def list_all_links(session: AsyncSession) -> List[NodeLink]:
     result = await session.execute(select(NodeLink))
     return list(result.scalars().all())
+
+
+async def upsert_node_link(
+    session: AsyncSession,
+    source_db_id: str,
+    target_db_id: str,
+    rssi_dbm: Optional[float] = None,
+    packet_loss_percent: float = 0.0,
+    latency_ms: Optional[float] = None,
+) -> NodeLink:
+    """Upsert a directed link between two nodes (identified by their DB primary keys)."""
+    from datetime import datetime, timezone
+    from app.core.enums import NodeLinkStatus
+
+    result = await session.execute(
+        select(NodeLink).where(
+            (NodeLink.source_node_id == source_db_id) &
+            (NodeLink.target_node_id == target_db_id)
+        )
+    )
+    link = result.scalar_one_or_none()
+
+    now = datetime.now(timezone.utc)
+    if link:
+        if rssi_dbm is not None:
+            link.rssi_dbm = rssi_dbm
+        link.packet_loss_percent = packet_loss_percent
+        if latency_ms is not None:
+            link.latency_ms = latency_ms
+        link.last_seen = now
+        # Auto-upgrade/downgrade status based on quality
+        if packet_loss_percent >= 80:
+            link.status = NodeLinkStatus.DOWN
+        elif packet_loss_percent >= 20 or (rssi_dbm is not None and rssi_dbm < -85):
+            link.status = NodeLinkStatus.DEGRADED
+        else:
+            link.status = NodeLinkStatus.ACTIVE
+    else:
+        link = NodeLink(
+            source_node_id=source_db_id,
+            target_node_id=target_db_id,
+            rssi_dbm=rssi_dbm,
+            packet_loss_percent=packet_loss_percent,
+            latency_ms=latency_ms,
+            last_seen=now,
+        )
+        session.add(link)
+
+    await session.flush()
+    return link
+

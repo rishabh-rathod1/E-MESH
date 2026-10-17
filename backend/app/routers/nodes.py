@@ -89,17 +89,110 @@ async def list_links_endpoint(
     return [NodeLinkRead.model_validate(lnk) for lnk in links]
 
 
-@router.get("/topology", summary="Get complete mesh topology (nodes + links)")
+@router.get("/topology", summary="Get complete mesh topology (nodes + links) with layout metadata")
 async def get_topology_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     _actor: Annotated[User, Depends(_privileged)],
 ):
+    """
+    Returns all real hardware nodes and their links with enriched layout metadata:
+    - root_id: node_id of the gateway node (or first online node)
+    - max_depth: maximum tree depth computed from link structure
+    - Each node includes: layer (depth level), current_route (parsed list)
+    """
+    import json
+
     nodes, _ = await list_nodes(db, page=1, page_size=200)
     links = await list_all_links(db)
+
+    node_reads = [NodeRead.model_validate(n).model_dump() for n in nodes]
+    link_reads = [NodeLinkRead.model_validate(lnk).model_dump() for lnk in links]
+
+    # ── Determine root / gateway ──────────────────────────────────────────
+    # neighbour_count stores the live hop depth (1 = root, 2 = one-hop relay, ...)
+    # reported fresh from esp_mesh_lite_get_level() each heartbeat.
+    # is_gateway can be stale if the root has rotated since last heartbeat.
+    # Priority: 1) ONLINE node with neighbour_count=1  2) any node with neighbour_count=1
+    #           3) node with is_gateway=True  4) first node
+    root_node = (
+        next((n for n in nodes if n.neighbour_count == 1 and n.status.value == 'ONLINE'), None)
+        or next((n for n in nodes if n.neighbour_count == 1), None)
+        or next((n for n in nodes if n.is_gateway), None)
+        or (nodes[0] if nodes else None)
+    )
+    root_id = root_node.node_id if root_node else "GATEWAY"
+
+    # Build id→node_id lookup (links use DB id as source/target)
+    id_to_nodeid: dict[str, str] = {n.id: n.node_id for n in nodes}
+
+    # ── Prefer stored hop depth (neighbour_count) when available ─────────
+    # ESP32 firmware sends hop_count (layer depth from root), which is stored in
+    # neighbour_count via NodeUpdate.sync_aliases. Use it directly when no links exist.
+    stored_layers: dict[str, int] = {}
+    for n in nodes:
+        # neighbour_count holds the hop depth when set by firmware heartbeat
+        if n.neighbour_count and n.neighbour_count >= 1:
+            stored_layers[n.node_id] = n.neighbour_count
+
+    # ── BFS from root using NodeLink edges (more accurate when links present) ─
+    from collections import defaultdict, deque
+    adj: dict[str, set[str]] = defaultdict(set)
+    for lnk in links:
+        src_nid = id_to_nodeid.get(lnk.source_node_id)
+        tgt_nid = id_to_nodeid.get(lnk.target_node_id)
+        if src_nid and tgt_nid:
+            adj[src_nid].add(tgt_nid)
+            adj[tgt_nid].add(src_nid)
+
+    bfs_layers: dict[str, int] = {}
+    if links and nodes:
+        queue = deque([(root_id, 1)])
+        visited = {root_id}
+        while queue:
+            nid, depth = queue.popleft()
+            bfs_layers[nid] = depth
+            for neighbor in adj.get(nid, []):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+
+    # ── Merge: BFS wins when links exist; fall back to stored hop depth ───
+    layers: dict[str, int] = {}
+    for n in nodes:
+        nid = n.node_id
+        if nid in bfs_layers:
+            layers[nid] = bfs_layers[nid]
+        elif nid in stored_layers:
+            layers[nid] = stored_layers[nid]
+        else:
+            layers[nid] = 1  # unknown — place at root level
+
+    max_depth = max(layers.values(), default=1)
+
+    # ── Enrich node dicts with layer & parsed current_route ───────────────
+    for nd in node_reads:
+        nd["layer"] = layers.get(nd["node_id"], 1)
+        raw_route = nd.get("current_route")
+        if raw_route and isinstance(raw_route, str):
+            try:
+                nd["current_route"] = json.loads(raw_route)
+            except (ValueError, TypeError):
+                nd["current_route"] = []
+        elif raw_route is None:
+            nd["current_route"] = []
+
+    # ── Enrich links with human-readable node_ids ────────────────────────
+    for lk in link_reads:
+        lk["source_node_id"] = id_to_nodeid.get(lk["source_node_id"], lk["source_node_id"])
+        lk["target_node_id"] = id_to_nodeid.get(lk["target_node_id"], lk["target_node_id"])
+
     return {
-        "nodes": [NodeRead.model_validate(n).model_dump() for n in nodes],
-        "links": [NodeLinkRead.model_validate(l).model_dump() for l in links],
+        "root_id": root_id,
+        "max_depth": max_depth,
+        "nodes": node_reads,
+        "links": link_reads,
     }
+
 
 
 @router.get("/{node_id}", response_model=NodeRead, summary="Get a node by ID")

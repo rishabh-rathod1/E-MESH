@@ -125,11 +125,26 @@ def create_app() -> FastAPI:
     app.include_router(websocket.router)  # also alias /ws at root level
 
     # Mount the client directory to serve the frontend portal
-    import os
+    from pathlib import Path
     from fastapi.staticfiles import StaticFiles
-    client_dir = r"c:\projects\pjt1\client"
-    if os.path.exists(client_dir):
-        app.mount("/client", StaticFiles(directory=client_dir, html=True), name="client")
+    from fastapi.responses import RedirectResponse
+
+    candidate_client_dirs = [
+        Path(__file__).resolve().parent.parent.parent / "client",
+        Path.cwd() / "client",
+        Path.cwd() / ".." / "client",
+    ]
+    client_dir = next((p for p in candidate_client_dirs if p.exists() and (p / "index.html").exists()), None)
+
+    if client_dir:
+        logger.info("Mounting civilian client portal from: %s", client_dir)
+        app.mount("/client", StaticFiles(directory=str(client_dir), html=True), name="client")
+
+        @app.get("/client", include_in_schema=False)
+        async def client_redirect():
+            return RedirectResponse(url="/client/")
+    else:
+        logger.warning("Civilian client directory not found; /client not mounted.")
 
     # ── Root endpoint ─────────────────────────────────────────────────────
     @app.get("/", tags=["Root"], include_in_schema=False)

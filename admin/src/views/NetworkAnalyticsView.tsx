@@ -21,21 +21,21 @@ import {
   Zap,
 } from 'lucide-react';
 import { api } from '../api/client';
-import { AnalyticsMetrics, SimulatedNode, TimelineEvent } from '../api/types';
+import { AnalyticsMetrics, MeshNode, SimulatedNode, TimelineEvent } from '../api/types';
 import { useMeshEvent } from '../api/ws';
 
 export const NetworkAnalyticsView: React.FC = () => {
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [nodes, setNodes] = useState<SimulatedNode[]>([]);
+  const [nodes, setNodes] = useState<MeshNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
-  // Failure Simulation Form State
-  const [selectedParentId, setSelectedParentId] = useState<string>('EM-01');
-  const [selectedNodeOfflineId, setSelectedNodeOfflineId] = useState<string>('EM-03');
-  const [degradeSrc, setDegradeSrc] = useState<string>('EM-01');
-  const [degradeDst, setDegradeDst] = useState<string>('EM-04');
+  // Failure Simulation Form State (populated from real hardware nodes on load)
+  const [selectedParentId, setSelectedParentId] = useState<string>('');
+  const [selectedNodeOfflineId, setSelectedNodeOfflineId] = useState<string>('');
+  const [degradeSrc, setDegradeSrc] = useState<string>('');
+  const [degradeDst, setDegradeDst] = useState<string>('');
   const [degradeLoss, setDegradeLoss] = useState<number>(65);
   const [degradeLatency, setDegradeLatency] = useState<number>(140);
 
@@ -45,11 +45,22 @@ export const NetworkAnalyticsView: React.FC = () => {
       const [m, tl, n] = await Promise.all([
         api.getSimulationAnalytics(),
         api.getSimulationTimeline(40),
-        api.getSimulationNodes(),
+        api.getNodes({ page_size: 200 }),  // real hardware nodes for dropdowns
       ]);
       setMetrics(m);
       setTimeline(tl);
-      setNodes(n);
+      const realNodes = n.data;
+      setNodes(realNodes);
+      // Auto-select first real node as default for simulation dropdowns
+      if (realNodes.length > 0) {
+        const nonGateway = realNodes.filter(nd => !nd.node_id.toLowerCase().includes('gateway'));
+        const firstId = (nonGateway[0] ?? realNodes[0]).node_id;
+        const secondId = (nonGateway[1] ?? nonGateway[0] ?? realNodes[0]).node_id;
+        setSelectedParentId(prev => prev || firstId);
+        setSelectedNodeOfflineId(prev => prev || firstId);
+        setDegradeSrc(prev => prev || firstId);
+        setDegradeDst(prev => prev || secondId);
+      }
     } catch (err) {
       console.error('Failed to load network analytics', err);
     } finally {
@@ -264,7 +275,7 @@ export const NetworkAnalyticsView: React.FC = () => {
                     onChange={(e) => setSelectedParentId(e.target.value)}
                   >
                     {nodes.filter(n => n.node_id !== 'GATEWAY').map(n => (
-                      <option key={n.node_id} value={n.node_id}>{n.node_id} (Layer {n.layer})</option>
+                      <option key={n.node_id} value={n.node_id}>{n.node_id} ({n.status})</option>
                     ))}
                   </select>
                   <button onClick={handleSimulateParentFailure} className="btn btn-sm">Kill Node</button>
