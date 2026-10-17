@@ -243,6 +243,10 @@ class ApiClient {
     return this.request<PaginatedResponse<MeshNode>>(`/nodes?${qs.toString()}`);
   }
 
+  public async getNodeTelemetry(nodeId: string, limit: number = 50): Promise<any[]> {
+    return this.request<any[]>(`/nodes/${nodeId}/telemetry?limit=${limit}`);
+  }
+
   public async getTopology(): Promise<HardwareTopology> {
     return this.request<HardwareTopology>('/nodes/topology');
   }

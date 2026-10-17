@@ -46,10 +46,11 @@ menu "E-MESH Firmware Configuration"
 
     config EMESH_HEARTBEAT_INTERVAL_SEC
         int "Heartbeat interval (seconds)"
-        default 30
-        range 5 300
+        default 3
+        range 3 300
         help
             How often each node sends a heartbeat/telemetry update to the server.
+            3 seconds is recommended for real-time sensor monitoring with <10 nodes.
 
     config EMESH_GPS_ENABLED
         bool "Enable GPS peripheral support"
@@ -64,6 +65,15 @@ menu "E-MESH Firmware Configuration"
         default y
         help
             Enable the physical SOS button with hardware interrupt.
+
+    config EMESH_SENSORS_ENABLED
+        bool "Enable I2C sensor support (BMP280 + MPU6050)"
+        default y
+        help
+            Enable auto-detection of BMP280 (temperature/pressure) and
+            MPU6050 (6-axis IMU) over I2C. If sensors are not physically
+            connected, the firmware gracefully skips them and continues
+            normal mesh operation. Sensor data is included in heartbeats.
 
     config EMESH_MESH_MAX_LEVEL
         int "Maximum mesh tree depth"

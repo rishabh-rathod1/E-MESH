@@ -125,11 +125,26 @@ export interface MeshNode {
   node_id: string;
   name: string;
   status: NodeStatus;
-  battery_level: number;
-  signal_quality: number;
+  battery_percent?: number | null;
+  rssi_dbm?: number | null;
   hop_count: number;
   firmware_version?: string | null;
-  last_seen?: string | null;
+  last_heartbeat?: string | null;
+  current_route?: string | null;
+  has_gps?: boolean;
+  gps_lat?: number | null;
+  gps_lon?: number | null;
+  gps_alt_m?: number | null;
+  gps_sats?: number | null;
+  // Sensor telemetry (null when hardware not present)
+  temperature_c?: number | null;
+  pressure_hpa?: number | null;
+  accel_x?: number | null;
+  accel_y?: number | null;
+  accel_z?: number | null;
+  gyro_x?: number | null;
+  gyro_y?: number | null;
+  gyro_z?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -138,8 +153,8 @@ export interface MeshNodeLink {
   id: string;
   source_node_id: string;
   target_node_id: string;
-  rssi: number;
-  link_quality: number;
+  rssi_dbm?: number | null;
+  link_quality?: number;
   status: NodeLinkStatus;
   last_packet_at?: string | null;
 }
@@ -372,6 +387,20 @@ export interface HardwareNode {
   updated_at: string;
   // enriched by topology endpoint
   layer: number;
+  has_gps?: boolean;
+  gps_lat?: number | null;
+  gps_lon?: number | null;
+  gps_alt_m?: number | null;
+  gps_sats?: number | null;
+  // Sensor telemetry
+  temperature_c?: number | null;
+  pressure_hpa?: number | null;
+  accel_x?: number | null;
+  accel_y?: number | null;
+  accel_z?: number | null;
+  gyro_x?: number | null;
+  gyro_y?: number | null;
+  gyro_z?: number | null;
 }
 
 export interface HardwareLink {

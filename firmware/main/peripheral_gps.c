@@ -70,10 +70,16 @@ static bool parse_gpgga(const char *sentence)
 
     char *fields[15] = {0};
     int idx = 0;
-    char *token = strtok(buf, ",");
-    while (token && idx < 15) {
-        fields[idx++] = token;
-        token = strtok(NULL, ",");
+    char *p = buf;
+    while (p && idx < 15) {
+        fields[idx++] = p;
+        char *comma = strchr(p, ',');
+        if (comma) {
+            *comma = '\0';
+            p = comma + 1;
+        } else {
+            break;
+        }
     }
 
     /* Need at least 10 fields for a valid GGA */
@@ -141,10 +147,12 @@ static void gps_task(void *arg)
                 if (c == '\n' || c == '\r') {
                     line_buf[line_pos] = '\0';
 
-                    if (!detected && line_pos > 5) {
-                        detected = true;
-                        s_gps_present = true;
-                        ESP_LOGI(TAG, "GPS module detected!");
+                    if (strstr(line_buf, "$GP") || strstr(line_buf, "$GN")) {
+                        if (!detected) {
+                            detected = true;
+                            s_gps_present = true;
+                            ESP_LOGI(TAG, "GPS module detected!");
+                        }
                     }
 
                     /* Parse GGA sentences (both GPS-only and multi-GNSS) */

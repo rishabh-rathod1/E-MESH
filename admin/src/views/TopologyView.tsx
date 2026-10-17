@@ -7,6 +7,7 @@ import {
   Info,
   Layers,
   Network,
+  MapPin,
   Radio,
   RefreshCw,
   Route,
@@ -17,6 +18,7 @@ import {
 import { api } from '../api/client';
 import { HardwareLink, HardwareNode, HardwareTopology } from '../api/types';
 import { useMeshEvent } from '../api/ws';
+import { NodeTelemetryChart } from '../components/NodeTelemetryChart';
 
 const EMPTY_TOPOLOGY: HardwareTopology = {
   root_id: '',
@@ -82,7 +84,7 @@ export const TopologyView: React.FC = () => {
 
   const layersMap: Record<number, HardwareNode[]> = {};
   topology.nodes.forEach((node) => {
-    const layer = node.layer ?? 1;
+    const layer = node.layer ?? node.neighbour_count ?? 1;
     if (!layersMap[layer]) layersMap[layer] = [];
     layersMap[layer].push(node);
   });
@@ -102,7 +104,11 @@ export const TopologyView: React.FC = () => {
   });
 
   const targetRouteNode = topology.nodes.find((n) => n.node_id === selectedRouteNodeId);
-  const activeRoutePath: string[] = targetRouteNode?.current_route ?? [];
+  const activeRoutePath: string[] = Array.isArray(targetRouteNode?.current_route)
+    ? targetRouteNode.current_route
+    : typeof targetRouteNode?.current_route === 'string' && targetRouteNode.current_route
+    ? (targetRouteNode.current_route as string).split(',')
+    : [];
 
   // ── Status colour helpers ─────────────────────────────────────────────────
   const nodeStrokeColor = (node: HardwareNode, isRoot: boolean, inRoute: boolean) => {
@@ -210,7 +216,7 @@ export const TopologyView: React.FC = () => {
               >
                 {topology.nodes.map((n) => (
                   <option key={n.node_id} value={n.node_id}>
-                    {n.node_id} (Layer {n.layer})
+                    {n.node_id} (Layer {n.layer ?? n.neighbour_count ?? 1})
                   </option>
                 ))}
               </select>
@@ -414,13 +420,18 @@ export const TopologyView: React.FC = () => {
                     {selectedNode.is_gateway && (
                       <span className="badge badge-outline text-primary text-xs">GATEWAY</span>
                     )}
+                    {selectedNode.has_gps && (
+                      <span className="badge bg-blue text-white text-[10px] uppercase">
+                        GPS Connected
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
-                    <div className="flex items-center gap-2 text-muted mb-2"><Layers size={14}/> <span className="text-xs font-semibold">Layer</span></div>
-                    <div className="text-xl font-mono text-main">{selectedNode.layer ?? '—'}</div>
+                    <div className="flex items-center gap-2 text-muted mb-2"><Layers size={14}/> <span className="text-xs font-semibold">Tree Layer</span></div>
+                    <div className="text-xl font-mono text-main">{selectedNode.layer ?? selectedNode.neighbour_count ?? 1}</div>
                   </div>
                   <div className="p-3 border border-subtle rounded-sm bg-surface">
                     <div className="flex items-center gap-2 text-muted mb-2"><Radio size={14}/> <span className="text-xs font-semibold">Neighbours</span></div>
@@ -462,14 +473,101 @@ export const TopologyView: React.FC = () => {
                   </div>
                 </div>
 
+                {/* GPS Data */}
+                {selectedNode.has_gps && (
+                  <div className="mb-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-1">
+                      <MapPin size={12} className="text-emerald" /> GPS (M8N)
+                    </div>
+                    {selectedNode.gps_lat != null ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2 border border-subtle rounded-sm bg-surface-elevated col-span-2">
+                          <div className="text-xs text-muted mb-1">Coordinates</div>
+                          <div className="text-sm font-mono text-emerald font-bold">
+                            {selectedNode.gps_lat.toFixed(6)}°, {selectedNode.gps_lon?.toFixed(6)}°
+                          </div>
+                        </div>
+                        <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                          <div className="text-xs text-muted mb-1">Altitude</div>
+                          <div className="text-sm font-mono text-main">
+                            {selectedNode.gps_alt_m != null ? `${selectedNode.gps_alt_m.toFixed(1)} m` : 'N/A'}
+                          </div>
+                        </div>
+                        <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                          <div className="text-xs text-muted mb-1">Satellites</div>
+                          <div className="text-sm font-mono text-main">
+                            {selectedNode.gps_sats ?? 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted italic p-2 border border-subtle rounded-sm bg-surface-elevated">
+                        GPS connected — waiting for satellite fix…
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* BMP280 Environmental Data */}
+                {(selectedNode.temperature_c != null || selectedNode.pressure_hpa != null) && (
+                  <div className="mb-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-1">
+                      <Zap size={12} className="text-amber" /> Environment (BMP280)
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                        <div className="text-xs text-muted mb-1">Temperature</div>
+                        <div className="text-base font-mono text-amber font-bold">
+                          {selectedNode.temperature_c != null ? `${selectedNode.temperature_c.toFixed(1)} °C` : 'N/A'}
+                        </div>
+                      </div>
+                      <div className="p-2 border border-subtle rounded-sm bg-surface-elevated">
+                        <div className="text-xs text-muted mb-1">Pressure</div>
+                        <div className="text-base font-mono text-blue font-bold">
+                          {selectedNode.pressure_hpa != null ? `${selectedNode.pressure_hpa.toFixed(1)} hPa` : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MPU6050 IMU Data */}
+                {selectedNode.accel_x != null && (
+                  <div className="mb-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-1">
+                      <Radio size={12} className="text-primary" /> IMU (MPU6050) — Raw
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 mb-1">
+                      {[['Ax', selectedNode.accel_x], ['Ay', selectedNode.accel_y], ['Az', selectedNode.accel_z]].map(([label, val]) => (
+                        <div key={String(label)} className="p-1.5 border border-subtle rounded-sm bg-surface-elevated text-center">
+                          <div className="text-xs text-muted">{label}</div>
+                          <div className="text-xs font-mono text-primary">{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[['Gx', selectedNode.gyro_x], ['Gy', selectedNode.gyro_y], ['Gz', selectedNode.gyro_z]].map(([label, val]) => (
+                        <div key={String(label)} className="p-1.5 border border-subtle rounded-sm bg-surface-elevated text-center">
+                          <div className="text-xs text-muted">{label}</div>
+                          <div className="text-xs font-mono text-emerald">{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Historical Telemetry Charts */}
+                <NodeTelemetryChart nodeId={selectedNode.id} />
+
+                {/* Current Route Path */}
                 <div className="mt-auto pt-4 border-t border-subtle">
                   <div className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Current Route Path</div>
-                  {selectedNode.current_route.length > 0 ? (
+                  {(Array.isArray(selectedNode.current_route) ? selectedNode.current_route : typeof selectedNode.current_route === 'string' && selectedNode.current_route ? (selectedNode.current_route as string).split(',') : []).length > 0 ? (
                     <div className="flex flex-wrap gap-1 p-2 bg-surface-elevated border border-subtle rounded-sm">
-                      {selectedNode.current_route.map((n, i) => (
+                      {(Array.isArray(selectedNode.current_route) ? selectedNode.current_route : (selectedNode.current_route as string).split(',')).map((n, i, arr) => (
                         <React.Fragment key={i}>
                           <span className="font-mono text-xs">{n}</span>
-                          {i < selectedNode.current_route.length - 1 && <ChevronRight size={12} className="text-dim" />}
+                          {i < arr.length - 1 && <ChevronRight size={12} className="text-dim" />}
                         </React.Fragment>
                       ))}
                     </div>

@@ -14,7 +14,7 @@ from app.core.enums import NodeStatus, UserRole
 from app.core.exceptions import NotFoundError
 from app.models.user import User
 from app.schemas.common import PaginatedResponse, SuccessResponse
-from app.schemas.node import NodeCreate, NodeLinkRead, NodeRead, NodeUpdate
+from app.schemas.node import NodeCreate, NodeLinkRead, NodeRead, NodeUpdate, NodeTelemetryRead
 from app.services.audit_service import write_audit
 from app.services.network_event_service import (
     emit_node_offline,
@@ -101,6 +101,8 @@ async def get_topology_endpoint(
     - Each node includes: layer (depth level), current_route (parsed list)
     """
     import json
+    import uuid
+    from collections import defaultdict, deque
 
     nodes, _ = await list_nodes(db, page=1, page_size=200)
     links = await list_all_links(db)
@@ -135,7 +137,6 @@ async def get_topology_endpoint(
             stored_layers[n.node_id] = n.neighbour_count
 
     # ── BFS from root using NodeLink edges (more accurate when links present) ─
-    from collections import defaultdict, deque
     adj: dict[str, set[str]] = defaultdict(set)
     for lnk in links:
         src_nid = id_to_nodeid.get(lnk.source_node_id)
@@ -181,10 +182,40 @@ async def get_topology_endpoint(
         elif raw_route is None:
             nd["current_route"] = []
 
-    # ── Enrich links with human-readable node_ids ────────────────────────
-    for lk in link_reads:
-        lk["source_node_id"] = id_to_nodeid.get(lk["source_node_id"], lk["source_node_id"])
-        lk["target_node_id"] = id_to_nodeid.get(lk["target_node_id"], lk["target_node_id"])
+    # ── Enrich or synthesize links ──────────────────────────────────────
+    if links:
+        for lk in link_reads:
+            lk["source_node_id"] = id_to_nodeid.get(lk["source_node_id"], lk["source_node_id"])
+            lk["target_node_id"] = id_to_nodeid.get(lk["target_node_id"], lk["target_node_id"])
+    elif len(nodes) > 1:
+        # Auto-generate visual links if none exist based on computed layer depth
+        mock_links = []
+        by_layer: dict[int, list] = {}
+        for nd in node_reads:
+            lyr = nd["layer"]
+            by_layer.setdefault(lyr, []).append(nd)
+
+        for lyr in sorted(by_layer.keys()):
+            if lyr <= 1:
+                continue
+            parents = by_layer.get(lyr - 1, [])
+            if not parents:
+                parents = [p for p in node_reads if p["layer"] < lyr]
+
+            for child in by_layer[lyr]:
+                parent = parents[hash(child["node_id"]) % len(parents)] if parents else None
+                if parent:
+                    mock_links.append({
+                        "id": str(uuid.uuid4()),
+                        "source_node_id": child["node_id"],
+                        "target_node_id": parent["node_id"],
+                        "rssi_dbm": child.get("rssi_dbm"),
+                        "packet_loss_percent": child.get("packet_loss_percent", 0.0),
+                        "latency_ms": 15.0,
+                        "status": "ACTIVE",
+                        "last_seen": child.get("last_heartbeat"),
+                    })
+        link_reads = mock_links
 
     return {
         "root_id": root_id,
@@ -265,3 +296,28 @@ async def get_node_links(
         raise NotFoundError("Node", node_id)
     links = await get_links_for_node(db, node.id)
     return [NodeLinkRead.model_validate(lnk) for lnk in links]
+
+
+@router.get("/{node_id}/telemetry", response_model=list[NodeTelemetryRead], summary="Get time-series telemetry for a specific node")
+async def get_node_telemetry(
+    node_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _actor: Annotated[User, Depends(_privileged)],
+    limit: int = Query(100, ge=1, le=1000)
+):
+    from sqlalchemy import select
+    from app.models.node_telemetry import NodeTelemetry
+    
+    node = await get_node_by_id(db, node_id)
+    if not node:
+        raise NotFoundError("Node", node_id)
+        
+    result = await db.execute(
+        select(NodeTelemetry)
+        .where(NodeTelemetry.node_id == node.node_id)
+        .order_by(NodeTelemetry.timestamp.desc())
+        .limit(limit)
+    )
+    telemetry = result.scalars().all()
+    # Return ascending order for charts
+    return [NodeTelemetryRead.model_validate(t) for t in reversed(telemetry)]

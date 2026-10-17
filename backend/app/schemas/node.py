@@ -22,6 +22,20 @@ class NodeCreate(EMeshBaseModel):
     hop_count: Optional[int] = None
     position_x: Optional[float] = None
     position_y: Optional[float] = None
+    has_gps: Optional[bool] = False
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    gps_alt_m: Optional[float] = None
+    gps_sats: Optional[int] = None
+    # Sensor fields (all optional — only sent when hardware is present)
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None
 
     @model_validator(mode="after")
     def populate_aliases(self) -> "NodeCreate":
@@ -39,7 +53,7 @@ class NodeRead(EMeshBaseModel):
     uptime_seconds: int
     battery_percent: Optional[float] = None
     rssi_dbm: Optional[float] = None
-    neighbour_count: int
+    hop_count: int
     packet_rx: int
     packet_tx: int
     packet_loss_percent: float
@@ -48,6 +62,20 @@ class NodeRead(EMeshBaseModel):
     last_heartbeat: Optional[datetime] = None
     position_x: Optional[float] = None
     position_y: Optional[float] = None
+    has_gps: bool = False
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    gps_alt_m: Optional[float] = None
+    gps_sats: Optional[int] = None
+    # Sensor telemetry
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -66,7 +94,6 @@ class NodeRead(EMeshBaseModel):
     # NOTE: hop_count is intentionally NOT a property here;
     # it is stored in `neighbour_count` on the DB model.
 
-
 class NodeUpdate(EMeshBaseModel):
     display_name: Optional[str] = None
     name: Optional[str] = None
@@ -81,6 +108,20 @@ class NodeUpdate(EMeshBaseModel):
     hop_count: Optional[int] = None                       # alias: firmware reports this
     position_x: Optional[float] = None
     position_y: Optional[float] = None
+    has_gps: Optional[bool] = None
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    gps_alt_m: Optional[float] = None
+    gps_sats: Optional[int] = None
+    # Sensor fields
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None
 
     @model_validator(mode="after")
     def sync_aliases(self) -> "NodeUpdate":
@@ -106,3 +147,18 @@ class NodeLinkRead(EMeshBaseModel):
     latency_ms: Optional[float] = None
     status: str
     last_seen: Optional[datetime] = None
+
+
+class NodeTelemetryRead(EMeshBaseModel):
+    id: str
+    node_id: str
+    timestamp: datetime
+    temperature_c: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    imu_jerk: Optional[float] = None
+    accel_x: Optional[int] = None
+    accel_y: Optional[int] = None
+    accel_z: Optional[int] = None
+    gyro_x: Optional[int] = None
+    gyro_y: Optional[int] = None
+    gyro_z: Optional[int] = None

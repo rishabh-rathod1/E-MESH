@@ -4,6 +4,7 @@ idf_component_register(
         "mesh_layer.c"
         "peripheral_gps.c"
         "peripheral_ui.c"
+        "peripheral_sensors.c"
         "comms.c"
     INCLUDE_DIRS
         "."

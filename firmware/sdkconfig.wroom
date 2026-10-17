@@ -793,6 +793,8 @@ CONFIG_EMESH_GPS_ENABLED=y
 # default:
 CONFIG_EMESH_SOS_ENABLED=y
 # default:
+CONFIG_EMESH_SENSORS_ENABLED=y
+# default:
 CONFIG_EMESH_MESH_MAX_LEVEL=6
 # end of E-MESH Firmware Configuration
 
