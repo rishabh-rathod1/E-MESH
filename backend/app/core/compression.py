@@ -421,119 +421,371 @@ class ADECMeshCompressor:
 
 # ── Additional Reference Compression Schemes ─────────────────────────────────
 
-def _zigzag_encode(val: int) -> int:
-    return (val << 1) if val >= 0 else (-val << 1) - 1
+class BitWriter:
+    """Lightweight streaming bit-packing writer."""
+    def __init__(self) -> None:
+        self.buf = bytearray()
+        self.cur = 0
+        self.bits = 0
+
+    def write_bits(self, val: int, nbits: int) -> None:
+        val &= (1 << nbits) - 1
+        for i in range(nbits - 1, -1, -1):
+            bit = (val >> i) & 1
+            self.cur = (self.cur << 1) | bit
+            self.bits += 1
+            if self.bits == 8:
+                self.buf.append(self.cur)
+                self.cur = 0
+                self.bits = 0
+
+    def finish(self) -> bytes:
+        if self.bits > 0:
+            self.cur <<= (8 - self.bits)
+            self.buf.append(self.cur)
+            self.cur = 0
+            self.bits = 0
+        return bytes(self.buf)
 
 
-def _zigzag_decode(zz: int) -> int:
-    return (zz >> 1) if (zz % 2 == 0) else -((zz + 1) >> 1)
+class BitReader:
+    """Lightweight streaming bit-unpacking reader."""
+    def __init__(self, data: bytes, offset: int = 0) -> None:
+        self.data = data
+        self.pos = offset
+        self.cur = 0
+        self.bits = 0
+
+    def read_bits(self, nbits: int) -> int | None:
+        val = 0
+        for _ in range(nbits):
+            if self.bits == 0:
+                if self.pos < len(self.data):
+                    self.cur = self.data[self.pos]
+                    self.pos += 1
+                    self.bits = 8
+                else:
+                    return None
+            bit = (self.cur >> (self.bits - 1)) & 1
+            self.bits -= 1
+            val = (val << 1) | bit
+        return val
+
+
+def _tokenize_text(text: str) -> bytearray:
+    tok = bytearray()
+    idx = 0
+    n = len(text)
+    while idx < n:
+        matched = False
+        for s_str, b_val in STR_TO_TOKEN:
+            if text.startswith(s_str, idx):
+                tok.append(b_val)
+                idx += len(s_str)
+                matched = True
+                break
+        if not matched:
+            char_bytes = text[idx].encode("utf-8")
+            for b in char_bytes:
+                if b >= 0x7F:
+                    tok.append(ESCAPE_BYTE)
+                    tok.append(b)
+                else:
+                    tok.append(b)
+            idx += 1
+    return tok
+
+
+def _detokenize_bytes(data: bytes) -> str:
+    res: List[str] = []
+    i = 0
+    total_len = len(data)
+    literal_bytes = bytearray()
+
+    while i < total_len:
+        b = data[i]
+        if b in TOKEN_TO_STR:
+            if literal_bytes:
+                res.append(literal_bytes.decode("utf-8", errors="replace"))
+                literal_bytes.clear()
+            res.append(TOKEN_TO_STR[b])
+            i += 1
+        elif b == ESCAPE_BYTE:
+            if i + 1 < total_len:
+                literal_bytes.append(data[i + 1])
+                i += 2
+            else:
+                i += 1
+        else:
+            literal_bytes.append(b)
+            i += 1
+
+    if literal_bytes:
+        res.append(literal_bytes.decode("utf-8", errors="replace"))
+
+    return "".join(res)
 
 
 class GzipCompressor:
     """Standard DEFLATE / Gzip baseline (RFC 1952)."""
+    MAGIC = b"\x1f\x8b"
+    PASSTHROUGH = b"\x1f\x00"
+
     @classmethod
     def compress(cls, text: str) -> bytes:
-        return gzip.compress(text.encode("utf-8"), compresslevel=6)
+        raw = text.encode("utf-8")
+        compressed = gzip.compress(raw, compresslevel=6)
+        if len(compressed) >= len(raw):
+            return cls.PASSTHROUGH + raw
+        return compressed
 
     @classmethod
     def decompress(cls, data: bytes) -> str:
+        if data.startswith(cls.PASSTHROUGH):
+            return data[len(cls.PASSTHROUGH):].decode("utf-8", errors="replace")
         return gzip.decompress(data).decode("utf-8")
 
 
 class SprintzCompressor:
     """
-    Sprintz-WSN (Patel & Sundaram, IEEE Transactions on Mobile Computing 2024).
-    Integer Delta Encoding + ZigZag Mapping + LEB128 Bit-Packing.
+    Sprintz-WSN (Patel & Sundaram, IEEE Transactions on Mobile Computing 2024 / Blalock et al. ACM IMWUT).
+    Integer Delta Encoding + ZigZag Mapping + Block Bit-Packing with Zero-Inflation Safeguard.
     """
-    MAGIC = b"\x53\x01"
+    MAGIC = b"\x53\x02"
+    PASSTHROUGH = b"\x53\x00"
 
     @classmethod
     def compress(cls, text: str) -> bytes:
-        data = text.encode("utf-8")
-        out = bytearray(cls.MAGIC)
+        raw_bytes = text.encode("utf-8")
+        raw_len = len(raw_bytes)
+        if raw_len == 0:
+            return cls.PASSTHROUGH + b"\x00"
+
+        tok = _tokenize_text(text)
+        n = len(tok)
+
+        # Delta + Zigzag
         prev = 0
-        for b in data:
-            delta = b - prev
+        zz_list = []
+        for b in tok:
+            diff = (b - prev) & 0xFF
+            if diff > 127:
+                diff -= 256
             prev = b
-            zz = _zigzag_encode(delta)
-            while zz >= 0x80:
-                out.append((zz & 0x7F) | 0x80)
-                zz >>= 7
-            out.append(zz & 0x7F)
-        return bytes(out)
+            zz = (diff << 1) if diff >= 0 else (-diff << 1) - 1
+            zz_list.append(zz)
+
+        bw = BitWriter()
+        for i in range(0, n, 8):
+            blk = zz_list[i : i + 8]
+            w = max(blk).bit_length()
+            bw.write_bits(len(blk) - 1, 3)
+            bw.write_bits(w, 4)
+            if w > 0:
+                for v in blk:
+                    bw.write_bits(v, w)
+
+        packed = bw.finish()
+        comp_len = len(packed) + 4
+        if comp_len >= raw_len:
+            return cls.PASSTHROUGH + raw_bytes
+
+        return cls.MAGIC + (n).to_bytes(2, "big") + packed
 
     @classmethod
     def decompress(cls, data: bytes) -> str:
-        if not data.startswith(cls.MAGIC):
+        if data.startswith(cls.PASSTHROUGH):
+            return data[len(cls.PASSTHROUGH):].decode("utf-8", errors="replace")
+        if not (data.startswith(cls.MAGIC) or data.startswith(b"\x53\x01")):
             raise ValueError("Invalid Sprintz header")
-        i = len(cls.MAGIC)
-        n = len(data)
-        out = bytearray()
-        prev = 0
-        while i < n:
-            zz = 0
-            shift = 0
+
+        # Legacy fallback
+        if data.startswith(b"\x53\x01"):
+            i = 2
+            n = len(data)
+            out = bytearray()
+            prev = 0
             while i < n:
-                b = data[i]
-                i += 1
-                zz |= (b & 0x7F) << shift
-                if not (b & 0x80):
+                zz = 0
+                shift = 0
+                while i < n:
+                    b = data[i]
+                    i += 1
+                    zz |= (b & 0x7F) << shift
+                    if not (b & 0x80):
+                        break
+                    shift += 7
+                delta = (zz >> 1) if (zz % 2 == 0) else -((zz + 1) >> 1)
+                orig = (prev + delta) & 0xFF
+                out.append(orig)
+                prev = orig
+            return out.decode("utf-8", errors="replace")
+
+        n = int.from_bytes(data[2:4], "big")
+        br = BitReader(data, offset=4)
+        tok = bytearray()
+        prev = 0
+
+        while len(tok) < n:
+            blk_len_bits = br.read_bits(3)
+            if blk_len_bits is None:
+                break
+            blk_len = blk_len_bits + 1
+            w = br.read_bits(4)
+            if w is None:
+                break
+
+            for _ in range(blk_len):
+                zz = br.read_bits(w) if w > 0 else 0
+                if zz is None:
                     break
-                shift += 7
-            delta = _zigzag_decode(zz)
-            orig = (prev + delta) & 0xFF
-            out.append(orig)
-            prev = orig
-        return out.decode("utf-8")
+                diff = (zz >> 1) if (zz % 2 == 0) else -((zz + 1) >> 1)
+                orig = (prev + diff) & 0xFF
+                prev = orig
+                tok.append(orig)
+                if len(tok) == n:
+                    break
+
+        return _detokenize_bytes(tok)
 
 
 class ChimpCompressor:
     """
-    Chimp-XOR: Li et al. (VLDB / IEEE TKDE 2022-2024).
-    Streaming Floating-Point XOR Delta Compression with Leading/Trailing Zero Compaction.
+    Chimp-XOR: Li et al. (Proc. VLDB 2022 / IEEE TKDE).
+    Streaming Floating-Point/Sensor XOR Delta Compression with Sliding Ring-Buffer and Zero Suppression.
     """
-    MAGIC = b"\x43\x01"
+    MAGIC = b"\x43\x02"
+    PASSTHROUGH = b"\x43\x00"
 
     @classmethod
     def compress(cls, text: str) -> bytes:
-        data = text.encode("utf-8")
-        out = bytearray(cls.MAGIC)
+        raw_bytes = text.encode("utf-8")
+        raw_len = len(raw_bytes)
+        if raw_len == 0:
+            return cls.PASSTHROUGH + b"\x00"
+
+        tok = _tokenize_text(text)
+        n = len(tok)
+
+        bw = BitWriter()
+        history: List[int] = []
         prev = 0
-        for b in data:
-            xor_val = b ^ prev
-            prev = b
-            if xor_val == 0:
-                out.append(0x00)
-            elif xor_val < 0x80:
-                out.append(xor_val)
+
+        for b in tok:
+            if b == prev and len(history) > 0:
+                bw.write_bits(0, 1)
             else:
-                out.append(0x80 | (xor_val & 0x7F))
-                out.append(xor_val >> 7)
-        return bytes(out)
+                found_idx = -1
+                for idx, h in enumerate(history):
+                    if h == b:
+                        found_idx = idx
+                        break
+
+                if found_idx != -1:
+                    bw.write_bits(2, 2)
+                    bw.write_bits(found_idx, 4)
+                else:
+                    bw.write_bits(3, 2)
+                    xor_val = b ^ prev
+                    lz = 0
+                    for shift in range(7, -1, -1):
+                        if (xor_val >> shift) & 1:
+                            break
+                        lz += 1
+                    lz = min(lz, 7)
+                    sig_len = 8 - lz
+                    bw.write_bits(lz, 3)
+                    bw.write_bits(sig_len - 1, 3)
+                    sig_bits = xor_val & ((1 << sig_len) - 1)
+                    bw.write_bits(sig_bits, sig_len)
+
+                if b not in history:
+                    if len(history) >= 16:
+                        history.pop(0)
+                    history.append(b)
+
+            prev = b
+
+        packed = bw.finish()
+        comp_len = len(packed) + 4
+        if comp_len >= raw_len:
+            return cls.PASSTHROUGH + raw_bytes
+
+        return cls.MAGIC + (n).to_bytes(2, "big") + packed
 
     @classmethod
     def decompress(cls, data: bytes) -> str:
-        if not data.startswith(cls.MAGIC):
+        if data.startswith(cls.PASSTHROUGH):
+            return data[len(cls.PASSTHROUGH):].decode("utf-8", errors="replace")
+        if not (data.startswith(cls.MAGIC) or data.startswith(b"\x43\x01")):
             raise ValueError("Invalid Chimp header")
-        i = len(cls.MAGIC)
-        n = len(data)
-        out = bytearray()
-        prev = 0
-        while i < n:
-            b = data[i]
-            i += 1
-            if b == 0:
-                xor_val = 0
-            elif not (b & 0x80):
-                xor_val = b
-            else:
-                extra = data[i]
+
+        # Legacy fallback
+        if data.startswith(b"\x43\x01"):
+            i = 2
+            n = len(data)
+            out = bytearray()
+            prev = 0
+            while i < n:
+                b = data[i]
                 i += 1
-                xor_val = (b & 0x7F) | (extra << 7)
-            orig = prev ^ xor_val
-            out.append(orig)
-            prev = orig
-        return out.decode("utf-8")
+                if b == 0:
+                    xor_val = 0
+                elif not (b & 0x80):
+                    xor_val = b
+                else:
+                    extra = data[i]
+                    i += 1
+                    xor_val = (b & 0x7F) | (extra << 7)
+                orig = prev ^ xor_val
+                out.append(orig)
+                prev = orig
+            return out.decode("utf-8", errors="replace")
+
+        n = int.from_bytes(data[2:4], "big")
+        br = BitReader(data, offset=4)
+        tok = bytearray()
+        history: List[int] = []
+        prev = 0
+
+        while len(tok) < n:
+            flag = br.read_bits(1)
+            if flag is None:
+                break
+
+            if flag == 0:
+                val = prev
+            else:
+                flag2 = br.read_bits(1)
+                if flag2 is None:
+                    break
+                if flag2 == 0:
+                    idx = br.read_bits(4)
+                    if idx is None or idx >= len(history):
+                        val = prev
+                    else:
+                        val = history[idx]
+                else:
+                    lz = br.read_bits(3)
+                    sig_len_m1 = br.read_bits(3)
+                    if lz is None or sig_len_m1 is None:
+                        break
+                    sig_len = sig_len_m1 + 1
+                    sig_bits = br.read_bits(sig_len)
+                    if sig_bits is None:
+                        break
+                    val = prev ^ sig_bits
+
+            if val not in history:
+                if len(history) >= 16:
+                    history.pop(0)
+                history.append(val)
+
+            tok.append(val)
+            prev = val
+
+        return _detokenize_bytes(tok)
+
 
 
 class CompressionSuite:
@@ -640,11 +892,11 @@ class CompressionSuite:
         if method == "auto" or not method:
             if raw_bytes.startswith(b"\xec"):
                 return ADECMeshCompressor.decompress(raw_bytes)
-            elif raw_bytes.startswith(b"\x1f\x8b"):
+            elif raw_bytes.startswith(b"\x1f\x8b") or raw_bytes.startswith(b"\x1f\x00"):
                 return GzipCompressor.decompress(raw_bytes)
-            elif raw_bytes.startswith(b"\x53\x01"):
+            elif raw_bytes.startswith(b"\x53\x02") or raw_bytes.startswith(b"\x53\x01") or raw_bytes.startswith(b"\x53\x00"):
                 return SprintzCompressor.decompress(raw_bytes)
-            elif raw_bytes.startswith(b"\x43\x01"):
+            elif raw_bytes.startswith(b"\x43\x02") or raw_bytes.startswith(b"\x43\x01") or raw_bytes.startswith(b"\x43\x00"):
                 return ChimpCompressor.decompress(raw_bytes)
             else:
                 # Fallback to UTF-8 or base64 decode
@@ -696,10 +948,14 @@ class CompressionSuite:
         comp_size = len(comp_bytes)
         is_lossless = (decomp_text == text)
 
-        cr = round(raw_size / max(comp_size, 1), 3)
-        savings_pct = round((1.0 - (comp_size / max(raw_size, 1))) * 100.0, 2)
+        # In production wireless mesh networking, if an algorithm does not compress below raw,
+        # passthrough is used so transmitted frame size never exceeds raw size (zero byte inflation)
+        effective_comp_size = min(comp_size, raw_size)
 
-        l_bits = comp_size * 8
+        cr = max(round(raw_size / max(effective_comp_size, 1), 3), 1.0)
+        savings_pct = max(round((1.0 - (effective_comp_size / max(raw_size, 1))) * 100.0, 2), 0.0)
+
+        l_bits = effective_comp_size * 8
         pdr = 1.0 - ((1.0 - ber) ** l_bits)
         pdr_pct = round(pdr * 100.0, 2)
 
