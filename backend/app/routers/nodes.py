@@ -26,6 +26,7 @@ from app.services.node_service import (
     create_node,
     delete_node,
     get_node_by_id,
+    get_node_by_node_id,
     get_links_for_node,
     list_all_links,
     list_nodes,
@@ -75,7 +76,7 @@ async def create_node_endpoint(
         name=node.display_name or node.node_id,
         battery_level=node.battery_percent,
         signal_quality=node.rssi_dbm,
-        hop_count=node.neighbour_count,
+        hop_count=getattr(node, 'hop_count', getattr(node, 'neighbour_count', 1)),
     )
     return NodeRead.model_validate(node)
 
@@ -110,15 +111,18 @@ async def get_topology_endpoint(
     node_reads = [NodeRead.model_validate(n).model_dump() for n in nodes]
     link_reads = [NodeLinkRead.model_validate(lnk).model_dump() for lnk in links]
 
+    def get_node_hop(n):
+        return getattr(n, 'hop_count', getattr(n, 'neighbour_count', 1))
+
     # ── Determine root / gateway ──────────────────────────────────────────
-    # neighbour_count stores the live hop depth (1 = root, 2 = one-hop relay, ...)
+    # hop_count/neighbour_count stores the live hop depth (1 = root, 2 = one-hop relay, ...)
     # reported fresh from esp_mesh_lite_get_level() each heartbeat.
     # is_gateway can be stale if the root has rotated since last heartbeat.
-    # Priority: 1) ONLINE node with neighbour_count=1  2) any node with neighbour_count=1
+    # Priority: 1) ONLINE node with hop=1  2) any node with hop=1
     #           3) node with is_gateway=True  4) first node
     root_node = (
-        next((n for n in nodes if n.neighbour_count == 1 and n.status.value == 'ONLINE'), None)
-        or next((n for n in nodes if n.neighbour_count == 1), None)
+        next((n for n in nodes if get_node_hop(n) == 1 and getattr(n.status, 'value', str(n.status)).upper() == 'ONLINE'), None)
+        or next((n for n in nodes if get_node_hop(n) == 1), None)
         or next((n for n in nodes if n.is_gateway), None)
         or (nodes[0] if nodes else None)
     )
@@ -127,20 +131,19 @@ async def get_topology_endpoint(
     # Build id→node_id lookup (links use DB id as source/target)
     id_to_nodeid: dict[str, str] = {n.id: n.node_id for n in nodes}
 
-    # ── Prefer stored hop depth (neighbour_count) when available ─────────
-    # ESP32 firmware sends hop_count (layer depth from root), which is stored in
-    # neighbour_count via NodeUpdate.sync_aliases. Use it directly when no links exist.
+    # ── Prefer stored hop depth (hop_count / neighbour_count) when available ─────────
+    # ESP32 firmware sends hop_count (layer depth from root). Use it directly when no links exist.
     stored_layers: dict[str, int] = {}
     for n in nodes:
-        # neighbour_count holds the hop depth when set by firmware heartbeat
-        if n.neighbour_count and n.neighbour_count >= 1:
-            stored_layers[n.node_id] = n.neighbour_count
+        val = get_node_hop(n)
+        if val and val >= 1:
+            stored_layers[n.node_id] = val
 
     # ── BFS from root using NodeLink edges (more accurate when links present) ─
     adj: dict[str, set[str]] = defaultdict(set)
     for lnk in links:
-        src_nid = id_to_nodeid.get(lnk.source_node_id)
-        tgt_nid = id_to_nodeid.get(lnk.target_node_id)
+        src_nid = id_to_nodeid.get(lnk.source_node_id, lnk.source_node_id)
+        tgt_nid = id_to_nodeid.get(lnk.target_node_id, lnk.target_node_id)
         if src_nid and tgt_nid:
             adj[src_nid].add(tgt_nid)
             adj[tgt_nid].add(src_nid)
@@ -173,6 +176,8 @@ async def get_topology_endpoint(
     # ── Enrich node dicts with layer & parsed current_route ───────────────
     for nd in node_reads:
         nd["layer"] = layers.get(nd["node_id"], 1)
+        if "neighbour_count" not in nd or nd["neighbour_count"] is None:
+            nd["neighbour_count"] = nd.get("hop_count", nd["layer"])
         raw_route = nd.get("current_route")
         if raw_route and isinstance(raw_route, str):
             try:
@@ -183,10 +188,15 @@ async def get_topology_endpoint(
             nd["current_route"] = []
 
     # ── Enrich or synthesize links ──────────────────────────────────────
+    valid_node_ids = {n.node_id for n in nodes}
     if links:
+        valid_links = []
         for lk in link_reads:
             lk["source_node_id"] = id_to_nodeid.get(lk["source_node_id"], lk["source_node_id"])
             lk["target_node_id"] = id_to_nodeid.get(lk["target_node_id"], lk["target_node_id"])
+            if lk["source_node_id"] in valid_node_ids and lk["target_node_id"] in valid_node_ids:
+                valid_links.append(lk)
+        link_reads = valid_links
     elif len(nodes) > 1:
         # Auto-generate visual links if none exist based on computed layer depth
         mock_links = []
@@ -259,7 +269,7 @@ async def update_node_endpoint(
         status=node.status.value if hasattr(node.status, 'value') else str(node.status),
         battery_level=node.battery_percent,
         signal_quality=node.rssi_dbm,
-        hop_count=node.neighbour_count,
+        hop_count=getattr(node, 'hop_count', getattr(node, 'neighbour_count', 1)),
     )
     return NodeRead.model_validate(node)
 
@@ -272,17 +282,27 @@ async def delete_node_endpoint(
     actor: Annotated[User, Depends(_admin_only)],
 ):
     node = await get_node_by_id(db, node_id)
-    name = (node.display_name or node.node_id) if node else node_id
-    nid = node.node_id if node else node_id
+    if not node:
+        node = await get_node_by_node_id(db, node_id)
+    if not node:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Node '{node_id}' not found",
+        )
 
-    await delete_node(db, node_id)
+    name = node.display_name or node.node_id
+    nid = node.node_id
+
+    await delete_node(db, node.id)
+    await db.commit()
+
     await write_audit(
-        db, "node.deleted", actor=actor, entity_type="Node", entity_id=node_id,
+        db, "node.deleted", actor=actor, entity_type="Node", entity_id=node.id,
         ip_address=request.client.host if request.client else None,
     )
 
     emit_node_offline(node_id=nid, name=name)
-    return SuccessResponse(message="Node deleted")
+    return SuccessResponse(message=f"Node {nid} deleted")
 
 
 @router.get("/{node_id}/links", response_model=list[NodeLinkRead], summary="Get links for a specific node")

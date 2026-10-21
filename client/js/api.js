@@ -22,6 +22,14 @@ const API = {
     localStorage.removeItem('emesh_refresh_token');
   },
 
+  get compressionEnabled() {
+    return localStorage.getItem('emesh_compression_enabled') !== 'false';
+  },
+  setCompression(enabled) {
+    localStorage.setItem('emesh_compression_enabled', enabled ? 'true' : 'false');
+    window.dispatchEvent(new CustomEvent('emesh:compression_toggled', { detail: { enabled: !!enabled } }));
+  },
+
   async request(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
     const headers = {
@@ -31,6 +39,21 @@ const API = {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    // ADEC-Mesh Micro-Payload Compression (Restricted strictly to emergency micro-payloads, NEVER /auth)
+    const isCompressibleRoute = ['/sos', '/incidents', '/community/messages', '/mesh'].some(p => endpoint.startsWith(p));
+    if (this.compressionEnabled && isCompressibleRoute && !endpoint.startsWith('/auth') &&
+        options.body && typeof options.body === 'string' && 
+        ['POST', 'PUT', 'PATCH'].includes((options.method || 'GET').toUpperCase()) &&
+        window.ADECMeshCompressor) {
+      try {
+        const compB64 = window.ADECMeshCompressor.compressToBase64(options.body);
+        options.body = compB64;
+        headers['X-EMesh-Compression'] = 'adec';
+      } catch (compErr) {
+        console.warn('[ADEC-Mesh] Compression fallback to raw:', compErr);
+      }
     }
 
     try {
@@ -321,5 +344,32 @@ const API = {
     }
 
     console.log('[E-Mesh] GPS location tracking stopped');
+  },
+
+  // ── Research & Evaluation Endpoints ─────────────────────────────────────
+  async getResearchStatus() {
+    return await this.request('/research/status');
+  },
+
+  async toggleBackendCompression(enabled) {
+    return await this.request('/research/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: !!enabled })
+    });
+  },
+
+  async runResearchBenchmark(payloadType = 'sensor_telemetry', rssiDbm = -78.0, customPayload = null) {
+    return await this.request('/research/benchmark', {
+      method: 'POST',
+      body: JSON.stringify({
+        payload_type: payloadType,
+        custom_payload: customPayload,
+        rssi_dbm: rssiDbm
+      })
+    });
+  },
+
+  async getResearchSamples() {
+    return await this.request('/research/samples');
   }
 };

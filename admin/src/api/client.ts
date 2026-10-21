@@ -11,6 +11,8 @@ import {
   LocationUser,
   MeshNode,
   PaginatedResponse,
+  BenchmarkResponse,
+  ResearchStatusResponse,
   ResourceItem,
   Responder,
   SimulatedLink,
@@ -563,6 +565,53 @@ class ApiClient {
 
   public async getLocationUsers(windowMinutes = 30): Promise<LocationUser[]> {
     return this.request<LocationUser[]>(`/location/users?window_minutes=${windowMinutes}`);
+  }
+
+  // ── Research & Compression Benchmarking ────────────────────────────────────
+  public async getResearchStatus(): Promise<ResearchStatusResponse> {
+    return this.request<ResearchStatusResponse>('/research/status');
+  }
+
+  public async toggleCompression(enabled: boolean): Promise<{ status: string; compression_enabled: boolean; active_method?: string; message: string }> {
+    return this.request<{ status: string; compression_enabled: boolean; active_method?: string; message: string }>('/research/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  public async selectCompressionMethod(method: string): Promise<{
+    status: string;
+    compression_enabled: boolean;
+    active_method: string;
+    method_info: any;
+    message: string;
+  }> {
+    return this.request<{
+      status: string;
+      compression_enabled: boolean;
+      active_method: string;
+      method_info: any;
+      message: string;
+    }>('/research/select-method', {
+      method: 'POST',
+      body: JSON.stringify({ method }),
+    });
+  }
+
+  public async runBenchmark(params: {
+    payload_type?: string;
+    custom_payload?: any;
+    rssi_dbm?: number;
+    data_rate_kbps?: number;
+  }): Promise<BenchmarkResponse> {
+    return this.request<BenchmarkResponse>('/research/benchmark', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  public async getResearchSamples(): Promise<Record<string, any>> {
+    return this.request<Record<string, any>>('/research/samples');
   }
 }
 

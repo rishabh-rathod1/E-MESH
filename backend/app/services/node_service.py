@@ -5,13 +5,14 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import NodeStatus
 from app.core.exceptions import AlreadyExistsError, NotFoundError
 from app.models.node import Node
 from app.models.node_link import NodeLink
+from app.models.node_telemetry import NodeTelemetry
 from app.schemas.node import NodeCreate, NodeUpdate
 
 
@@ -75,9 +76,22 @@ async def update_node(session: AsyncSession, node_id: str, data: NodeUpdate) -> 
 
 
 async def delete_node(session: AsyncSession, node_id: str) -> None:
+    # Accept either database primary key (UUID) or human-readable node_id
     node = await get_node_by_id(session, node_id)
     if not node:
+        node = await get_node_by_node_id(session, node_id)
+    if not node:
         raise NotFoundError("Node", node_id)
+
+    # Explicitly clean up all connected links and telemetry records to prevent integrity errors
+    await session.execute(
+        delete(NodeLink).where(
+            (NodeLink.source_node_id == node.id) | (NodeLink.target_node_id == node.id)
+        )
+    )
+    await session.execute(
+        delete(NodeTelemetry).where(NodeTelemetry.node_id == node.node_id)
+    )
     await session.delete(node)
     await session.flush()
 

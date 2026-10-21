@@ -6,12 +6,14 @@ from __future__ import annotations
 from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user, require_roles
+from app.core.dependencies import get_current_user, get_db, require_roles
 from app.core.enums import UserRole
 from app.gateway.simulated import get_gateway
 from app.models.user import User
 from app.schemas.common import SuccessResponse
+from app.services.node_service import delete_node as db_delete_node, get_node_by_id, get_node_by_node_id
 from app.schemas.simulation import (
     AnalyticsMetricsResponse,
     LinkDegradationRequest,
@@ -117,12 +119,27 @@ async def create_simulated_node_endpoint(
 @router.delete("/nodes/{node_id}", response_model=SuccessResponse, summary="Delete a simulated node")
 async def delete_simulated_node_endpoint(
     node_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
     _actor: Annotated[User, Depends(_admin_only)],
 ):
     gw = get_gateway()
-    success = await gw.delete_node(node_id)
-    if not success:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot delete node {node_id}")
+    gw_deleted = await gw.delete_node(node_id)
+
+    # Also clean up from real database if node exists there
+    db_node = await get_node_by_id(db, node_id)
+    if not db_node:
+        db_node = await get_node_by_node_id(db, node_id)
+
+    if db_node:
+        await db_delete_node(db, db_node.id)
+        await db.commit()
+
+    if not gw_deleted and not db_node:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cannot delete node {node_id}: Node not found in simulation or database",
+        )
+
     return SuccessResponse(message=f"Node {node_id} removed from simulation")
 
 

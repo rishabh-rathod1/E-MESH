@@ -421,3 +421,135 @@ export interface HardwareTopology {
   links: HardwareLink[];
 }
 
+// ── Research & Compression Benchmarking Types ─────────────────────────────────
+
+export interface ResearchChannelModel {
+  rssi_dbm: number;
+  snr_db: number;
+  bit_error_rate: number;
+  raw_packet_drop_rate_percent: number;
+  compressed_packet_drop_rate_percent: number;
+  gzip_packet_drop_rate_percent: number;
+  pdr_reduction_percent: number;
+  channel_delivery_gain_percent: number;
+}
+
+export interface ResearchTimings {
+  encoding_time_ms: number;
+  decoding_time_ms: number;
+  gzip_encoding_time_ms: number;
+  tx_time_raw_ms: number;
+  tx_time_comp_ms: number;
+  total_time_raw_ms: number;
+  total_time_comp_ms: number;
+  total_time_gzip_ms: number;
+  latency_reduction_percent: number;
+}
+
+export interface ResearchEfficiency {
+  goodput_gain_percent: number;
+  estimated_energy_saved_percent: number;
+  bits_per_byte_raw: number;
+  bits_per_byte_compressed: number;
+}
+
+export interface ResearchMetrics {
+  algorithm: string;
+  is_lossless: boolean;
+  raw_size_bytes: number;
+  compressed_size_bytes: number;
+  gzip_size_bytes: number;
+  bytes_saved: number;
+  compression_ratio: number;
+  gzip_compression_ratio: number;
+  space_savings_percent: number;
+  gzip_space_savings_percent: number;
+  adec_advantage_vs_gzip_percent: number;
+  timings: ResearchTimings;
+  channel_model: ResearchChannelModel;
+  efficiency: ResearchEfficiency;
+}
+
+export interface CompressionMethodInfo {
+  id: string;
+  name: string;
+  full_name: string;
+  type: string;
+  citation: string;
+  target: string;
+  guarantee: string;
+}
+
+export interface MethodBenchmarkResult {
+  method: string;
+  name: string;
+  citation: string;
+  raw_size_bytes: number;
+  compressed_size_bytes: number;
+  compression_ratio: number;
+  space_savings_percent: number;
+  encoding_time_ms: number;
+  decoding_time_ms: number;
+  packet_drop_rate_percent: number;
+  total_latency_ms: number;
+  energy_saved_percent: number;
+  pdr_reduction_percent: number;
+  goodput_gain_percent: number;
+  is_lossless: boolean;
+}
+
+export interface ComparativeStudy {
+  payload_raw_size_bytes: number;
+  channel_model: {
+    rssi_dbm: number;
+    snr_db: number;
+    bit_error_rate: number;
+    raw_packet_drop_rate_percent: number;
+    raw_tx_time_ms: number;
+  };
+  benchmarks: Record<string, MethodBenchmarkResult>;
+  ranked_comparison: MethodBenchmarkResult[];
+  available_methods: Record<string, CompressionMethodInfo>;
+}
+
+export interface ResearchStatusResponse {
+  compression_enabled: boolean;
+  active_method: string;
+  available_methods: Record<string, CompressionMethodInfo>;
+  algorithm: {
+    name: string;
+    full_name: string;
+    version: string;
+    foundation: string;
+    type: string;
+    theoretical_guarantee: string;
+  };
+  aggregate_metrics: {
+    total_packets_processed: number;
+    total_raw_bytes: number;
+    total_compressed_bytes: number;
+    total_bytes_saved: number;
+    average_compression_ratio: number;
+    average_space_savings_percent: number;
+  };
+  recent_transmissions: Array<{
+    timestamp: number;
+    method?: string;
+    raw_size: number;
+    comp_size: number;
+    savings_pct: number;
+    ratio: number;
+    enc_time_ms: number;
+    dec_time_ms: number;
+  }>;
+}
+
+export interface BenchmarkResponse {
+  payload_type: string;
+  metrics: ResearchMetrics;
+  comparative_study?: ComparativeStudy;
+  active_method?: string;
+  evaluated_payload: any;
+}
+
+

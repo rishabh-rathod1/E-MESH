@@ -77,11 +77,21 @@ class Node(Base):
         "SOS", back_populates="origin_node", foreign_keys="SOS.origin_node_id"
     )
     outgoing_links: Mapped[list["NodeLink"]] = relationship(  # noqa: F821
-        "NodeLink", back_populates="source_node", foreign_keys="NodeLink.source_node_id"
+        "NodeLink", back_populates="source_node", foreign_keys="NodeLink.source_node_id",
+        cascade="all, delete-orphan", passive_deletes=True
     )
     incoming_links: Mapped[list["NodeLink"]] = relationship(  # noqa: F821
-        "NodeLink", back_populates="target_node", foreign_keys="NodeLink.target_node_id"
+        "NodeLink", back_populates="target_node", foreign_keys="NodeLink.target_node_id",
+        cascade="all, delete-orphan", passive_deletes=True
     )
+
+    @property
+    def neighbour_count(self) -> int:
+        return self.hop_count
+
+    @neighbour_count.setter
+    def neighbour_count(self, value: int) -> None:
+        self.hop_count = value
 
     def __repr__(self) -> str:
         return f"<Node node_id={self.node_id} status={self.status}>"

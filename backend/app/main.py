@@ -35,6 +35,7 @@ from app.routers import (
     users,
     websocket,
     mesh_hardware,
+    research,
 )
 
 settings = get_settings()
@@ -104,6 +105,83 @@ def create_app() -> FastAPI:
             content={"success": False, "message": "An unexpected error occurred."},
         )
 
+    # ── Pure ASGI Automatic Decompression Middleware ─────────────────────────
+    class DecompressionASGIMiddleware:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] != "http":
+                return await self.app(scope, receive, send)
+
+            path = scope.get("path", "")
+            if "/auth" in path or "/client" in path or "/docs" in path or "/openapi.json" in path:
+                return await self.app(scope, receive, send)
+
+            headers = dict(scope.get("headers", []))
+            comp_header = headers.get(b"x-emesh-compression", b"").decode("latin-1").lower()
+            encoding = headers.get(b"content-encoding", b"").decode("latin-1").lower()
+            method_hint = comp_header or encoding
+
+            if method_hint in ("adec", "x-emesh-adec", "gzip", "sprintz", "chimp"):
+                body_chunks = []
+                more_body = True
+                while more_body:
+                    message = await receive()
+                    if message["type"] == "http.request":
+                        body_chunks.append(message.get("body", b""))
+                        more_body = message.get("more_body", False)
+                    elif message["type"] == "http.disconnect":
+                        return
+
+                raw_body = b"".join(body_chunks)
+                if raw_body:
+                    from app.core.compression import CompressionSuite
+                    from app.routers.research import ResearchState
+
+                    try:
+                        decomp_str = CompressionSuite.decompress_any(raw_body, method=method_hint)
+                        decomp_bytes = decomp_str.encode("utf-8")
+
+                        ResearchState.record_transmission(
+                            raw_size=len(decomp_bytes),
+                            comp_size=len(raw_body),
+                            method=method_hint,
+                        )
+
+                        # Update Content-Length header in scope
+                        new_headers = []
+                        for k, v in scope.get("headers", []):
+                            if k.lower() == b"content-length":
+                                new_headers.append((b"content-length", str(len(decomp_bytes)).encode("latin-1")))
+                            elif k.lower() in (b"x-emesh-compression", b"content-encoding"):
+                                continue  # Strip compression headers after successful decompression
+                            else:
+                                new_headers.append((k, v))
+                        scope["headers"] = new_headers
+
+                        body_sent = False
+
+                        async def custom_receive():
+                            nonlocal body_sent
+                            if not body_sent:
+                                body_sent = True
+                                return {
+                                    "type": "http.request",
+                                    "body": decomp_bytes,
+                                    "more_body": False,
+                                }
+                            return {"type": "http.disconnect"}
+
+                        return await self.app(scope, custom_receive, send)
+                    except Exception as exc:
+                        logger.warning("Failed to decompress incoming request (%s): %s", method_hint, exc)
+
+            return await self.app(scope, receive, send)
+
+    app.add_middleware(DecompressionASGIMiddleware)
+
+
     # ── Routers ───────────────────────────────────────────────────────────
     prefix = settings.API_PREFIX
     app.include_router(health.router, prefix=prefix)
@@ -121,6 +199,7 @@ def create_app() -> FastAPI:
     app.include_router(location.router, prefix=prefix)
     app.include_router(simulation.router, prefix=prefix)
     app.include_router(mesh_hardware.router, prefix=prefix)
+    app.include_router(research.router, prefix=prefix)
     app.include_router(websocket.router, prefix=prefix)
     app.include_router(websocket.router)  # also alias /ws at root level
 

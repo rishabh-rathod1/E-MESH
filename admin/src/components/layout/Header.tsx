@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, Menu, Radio, User as UserIcon } from 'lucide-react';
+import { LogOut, Menu, Radio, User as UserIcon, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api/client';
 
 interface HeaderProps {
   onMobileMenuToggle: () => void;
@@ -9,6 +10,31 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
   const { user, logout } = useAuth();
   const [timeStr, setTimeStr] = useState('');
+  const [compEnabled, setCompEnabled] = useState(true);
+  const [activeMethod, setActiveMethod] = useState('adec');
+  const [compLoading, setCompLoading] = useState(false);
+
+  useEffect(() => {
+    api.getResearchStatus()
+      .then((res) => {
+        setCompEnabled(res.compression_enabled);
+        if (res.active_method) setActiveMethod(res.active_method);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleCompression = async () => {
+    setCompLoading(true);
+    try {
+      const res = await api.toggleCompression(!compEnabled);
+      setCompEnabled(res.compression_enabled);
+      if (res.active_method) setActiveMethod(res.active_method);
+    } catch (e) {
+      console.error('Failed to toggle compression', e);
+    } finally {
+      setCompLoading(false);
+    }
+  };
 
   useEffect(() => {
     const updateTime = () => {
@@ -47,6 +73,22 @@ export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
           <Radio size={12} className="text-blue" />
           <span>FREQ: 2.4 GHz (ESP-MESH)</span>
         </div>
+
+        {/* Live Multi-Algorithm Compression Toggle */}
+        <button
+          onClick={handleToggleCompression}
+          disabled={compLoading}
+          title={`Compression: ${compEnabled ? activeMethod.toUpperCase() : 'OFF'} (Click to toggle)`}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border transition-all cursor-pointer hover:opacity-90"
+          style={{
+            background: compEnabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            borderColor: compEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+            color: compEnabled ? 'var(--accent-emerald)' : 'var(--accent-red)',
+          }}
+        >
+          <Zap size={12} className={compEnabled ? 'fill-current' : ''} />
+          <span className="font-bold">COMP: {compEnabled ? activeMethod.toUpperCase() : 'OFF'}</span>
+        </button>
       </div>
 
       <div className="flex items-center gap-4">

@@ -91,8 +91,10 @@ class NodeRead(EMeshBaseModel):
     def signal_quality(self) -> Optional[float]:
         return self.rssi_dbm
 
-    # NOTE: hop_count is intentionally NOT a property here;
-    # it is stored in `neighbour_count` on the DB model.
+    @property
+    def neighbour_count(self) -> int:
+        return self.hop_count
+
 
 class NodeUpdate(EMeshBaseModel):
     display_name: Optional[str] = None
