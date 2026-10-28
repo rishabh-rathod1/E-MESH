@@ -236,6 +236,18 @@ class ApiClient {
     });
   }
 
+  // ── LoRa Bridge Broadcast ──────────────────────────────────────────────────
+  public async sendLoRaBroadcast(payload: { message: string; priority?: string; title?: string }): Promise<any> {
+    return this.request('/mesh/lora/broadcast', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async getLoRaMessages(): Promise<{ messages: any[] }> {
+    return this.request('/mesh/lora/messages');
+  }
+
   // ── Nodes & Topology ───────────────────────────────────────────────────────
   public async getNodes(params?: { page?: number; page_size?: number; status?: string }): Promise<PaginatedResponse<MeshNode>> {
     const qs = new URLSearchParams();

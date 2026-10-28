@@ -75,3 +75,11 @@ logs/
 *.pem
 *.key
 *.crt
+
+# Reports, Papers, Presentations & Thesis Documents
+report_dump/
+basepaper/
+basepapers/
+B.Tech ECM Thesis Template*/
+*.pptx
+*.pdf

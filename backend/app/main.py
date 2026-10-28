@@ -199,6 +199,7 @@ def create_app() -> FastAPI:
     app.include_router(location.router, prefix=prefix)
     app.include_router(simulation.router, prefix=prefix)
     app.include_router(mesh_hardware.router, prefix=prefix)
+    app.include_router(mesh_hardware.router)  # alias /mesh at root level as well
     app.include_router(research.router, prefix=prefix)
     app.include_router(websocket.router, prefix=prefix)
     app.include_router(websocket.router)  # also alias /ws at root level

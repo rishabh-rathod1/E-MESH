@@ -46,6 +46,9 @@ class EventType(str, Enum):
     # Community Group Chat
     COMMUNITY_MESSAGE_SENT = "community.message_sent"
 
+    # LoRa Bridge Events
+    LORA_BROADCAST = "lora.broadcast"
+
 
 class EventEnvelope(EMeshBaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

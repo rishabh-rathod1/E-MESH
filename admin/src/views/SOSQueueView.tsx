@@ -10,7 +10,10 @@ import {
   Volume2,
   VolumeX,
   AlertTriangle,
-  Info
+  Info,
+  Send,
+  MessageSquare,
+  Check
 } from 'lucide-react';
 import { api } from '../api/client';
 import { SOS } from '../api/types';
@@ -23,6 +26,13 @@ export const SOSQueueView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [audioAlert, setAudioAlert] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // LoRa Emergency Broadcast State
+  const [broadcastText, setBroadcastText] = useState('');
+  const [broadcastPriority, setBroadcastPriority] = useState<'CRITICAL' | 'HIGH' | 'INFO'>('CRITICAL');
+  const [broadcastSending, setBroadcastSending] = useState(false);
+  const [broadcastSuccess, setBroadcastSuccess] = useState<string | null>(null);
+  const [recentBroadcasts, setRecentBroadcasts] = useState<any[]>([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -39,14 +49,51 @@ export const SOSQueueView: React.FC = () => {
     }
   };
 
+  const loadLoRaMessages = async () => {
+    try {
+      const res = await api.getLoRaMessages();
+      if (res && res.messages) {
+        setRecentBroadcasts(res.messages.slice(-5).reverse());
+      }
+    } catch (err) {
+      console.warn('Could not load LoRa messages', err);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLoRaMessages();
   }, [statusFilter]);
 
   useMeshEvent('sos.created', (data) => {
     loadData();
   });
   useMeshEvent('incident.updated', () => loadData());
+  useMeshEvent('lora.broadcast', (data: any) => {
+    setRecentBroadcasts((prev) => [data, ...prev.slice(0, 4)]);
+  });
+
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastText.trim()) return;
+
+    setBroadcastSending(true);
+    try {
+      await api.sendLoRaBroadcast({
+        message: broadcastText.trim(),
+        priority: broadcastPriority,
+        title: 'Emergency Broadcast'
+      });
+      setBroadcastSuccess('Broadcast queued for LoRa transmission (433 MHz)');
+      setBroadcastText('');
+      setTimeout(() => setBroadcastSuccess(null), 4000);
+      loadLoRaMessages();
+    } catch (err: any) {
+      alert(`Failed to send broadcast: ${err.message || err}`);
+    } finally {
+      setBroadcastSending(false);
+    }
+  };
 
   const handleUpdateStatus = async (id: string, status: 'ACKNOWLEDGED' | 'RESOLVED' | 'CANCELLED') => {
     setActionLoading(id);
@@ -129,6 +176,93 @@ export const SOSQueueView: React.FC = () => {
             <span>Listening for offline packets</span>
           </div>
         </div>
+      </div>
+
+      {/* LoRa Bridge Emergency Broadcast Panel */}
+      <div className="widget" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3 pb-2 border-b border-subtle">
+          <div className="flex items-center gap-2">
+            <Radio size={18} className="text-red animate-pulse" />
+            <h3 className="text-base font-bold text-main">
+              Emergency LoRa Text Broadcast (433 MHz Field Bridge)
+            </h3>
+            <span className="badge bg-red text-white text-xs">SX1278 Transmitter</span>
+          </div>
+          <span className="text-xs text-muted font-mono">
+            Direct Long-Range Outpost Transmission
+          </span>
+        </div>
+
+        {broadcastSuccess && (
+          <div className="p-3 mb-3 bg-emerald/10 border border-emerald/30 text-emerald rounded text-sm flex items-center gap-2">
+            <Check size={16} /> {broadcastSuccess}
+          </div>
+        )}
+
+        <form onSubmit={handleSendBroadcast} className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={broadcastText}
+                onChange={(e) => setBroadcastText(e.target.value)}
+                placeholder="Enter urgent text instructions (e.g., EVACUATE TO SECTOR 4 IMMEDIATELY)..."
+                className="form-input w-full text-sm font-semibold"
+                required
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={broadcastPriority}
+                onChange={(e) => setBroadcastPriority(e.target.value as any)}
+                className="form-input text-xs font-bold"
+                style={{ width: '130px' }}
+              >
+                <option value="CRITICAL">🚨 CRITICAL</option>
+                <option value="HIGH">⚠️ HIGH</option>
+                <option value="INFO">ℹ️ INFO</option>
+              </select>
+
+              <button
+                type="submit"
+                disabled={broadcastSending || !broadcastText.trim()}
+                className="btn btn-danger flex items-center gap-2 text-sm px-4 shrink-0"
+              >
+                {broadcastSending ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Send size={14} />
+                )}
+                <span>Transmit Broadcast</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {recentBroadcasts.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-subtle">
+            <div className="text-xs font-bold text-muted uppercase tracking-wider mb-2 flex items-center gap-1">
+              <MessageSquare size={12} /> Recent LoRa Transmissions:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recentBroadcasts.map((msg: any) => (
+                <div
+                  key={msg.id || msg.created_at}
+                  className="p-2 rounded bg-surface-elevated border border-subtle text-xs flex items-center gap-2 max-w-full"
+                >
+                  <span className={`badge ${msg.priority === 'CRITICAL' ? 'bg-red' : msg.priority === 'HIGH' ? 'bg-amber' : 'bg-primary'} text-white text-[10px]`}>
+                    {msg.priority || 'INFO'}
+                  </span>
+                  <span className="font-semibold text-main truncate max-w-xs">{msg.message}</span>
+                  <span className="text-[10px] text-muted font-mono shrink-0">
+                    {msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Content Area */}

@@ -271,3 +271,101 @@ async def hardware_link_report(
     )
 
     return NodeLinkRead.model_validate(link)
+
+
+# ── LoRa Bridge Polling & Broadcast Support ──────────────────────────────────
+_LORA_MESSAGES_BUFFER: list[dict] = []
+
+
+class LoRaBroadcastPayload(BaseModel):
+    message: str
+    priority: str = "CRITICAL"
+    title: str = "Emergency Broadcast"
+
+
+@router.post("/lora/broadcast", summary="Send an emergency text broadcast for LoRa transmission")
+async def send_lora_broadcast(
+    body: LoRaBroadcastPayload,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """
+    Called by admin dashboard to queue an emergency text broadcast message.
+    Stores in buffer and announces via WebSocket.
+    """
+    msg_id = f"MSG-{datetime.now(timezone.utc).strftime('%H%M%S')}"
+    msg_data = {
+        "id": msg_id,
+        "title": body.title,
+        "message": body.message,
+        "priority": body.priority,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    _LORA_MESSAGES_BUFFER.append(msg_data)
+    # Keep last 20 messages
+    if len(_LORA_MESSAGES_BUFFER) > 20:
+        _LORA_MESSAGES_BUFFER.pop(0)
+
+    # Emit WebSocket event so Admin UI updates live
+    emit_event(
+        event=EventType.LORA_BROADCAST,
+        data=msg_data,
+        target_roles=_ADMIN_ROLES,
+        scope="admin",
+    )
+    return {"status": "success", "data": msg_data}
+
+
+@router.get("/lora/poll", summary="Poll for active SOS alerts and admin broadcast messages (LoRa sender)")
+async def poll_lora_queue(
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """
+    Unauthenticated endpoint polled periodically (every 1-2s) by the LoRa Sender ESP32.
+    Returns:
+    - has_sos: True if there is an active SOS
+    - sos: details of the most recent active SOS
+    - has_message: True if there is an emergency text broadcast message
+    - message: details of the most recent text broadcast
+    """
+    from sqlalchemy import select, desc
+    from app.models.sos import SOS
+    from app.core.enums import SOSStatus
+
+    # Query for the latest ACTIVE SOS alert
+    stmt = (
+        select(SOS)
+        .where(SOS.status == SOSStatus.ACTIVE)
+        .order_by(desc(SOS.created_at))
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    active_sos = result.scalars().first()
+
+    sos_payload = None
+    if active_sos:
+        sos_payload = {
+            "sos_id": active_sos.sos_id,
+            "node_id": active_sos.origin_node_id or "NODE_FIELD",
+            "people_count": active_sos.people_count,
+            "status": active_sos.status.value if hasattr(active_sos.status, 'value') else str(active_sos.status),
+            "notes": active_sos.notes or "Emergency distress",
+            "created_at": active_sos.created_at.isoformat() if active_sos.created_at else ""
+        }
+
+    # Get latest broadcast message if any
+    latest_msg = _LORA_MESSAGES_BUFFER[-1] if _LORA_MESSAGES_BUFFER else None
+
+    return {
+        "has_sos": sos_payload is not None,
+        "sos": sos_payload,
+        "has_message": latest_msg is not None,
+        "message": latest_msg,
+        "server_time": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@router.get("/lora/messages", summary="List recent LoRa broadcast messages")
+async def list_lora_messages():
+    """Returns recent broadcast messages stored in the buffer."""
+    return {"messages": _LORA_MESSAGES_BUFFER}
+
